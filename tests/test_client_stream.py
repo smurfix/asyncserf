@@ -3,16 +3,16 @@ import pytest
 import re
 
 from contextlib import closing
-from serfclient import client
+from aioserf import client
 
 
-class TestSerfClientStream(object):
+class TestAioSerfStream(object):
     """
     Common commands for the library
     """
     @pytest.yield_fixture
     def serf(self):
-        with closing(client.SerfClient(timeout=None)) as serf:
+        with closing(client.AioSerf(timeout=None)) as serf:
             yield serf
 
     def test_sending_a_simple_event(self, serf):

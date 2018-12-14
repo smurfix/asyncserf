@@ -1,6 +1,6 @@
 import pytest
 
-from serfclient import result
+from aioserf import result
 
 
 class TestSerfResult(object):

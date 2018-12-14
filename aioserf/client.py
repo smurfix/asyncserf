@@ -1,10 +1,10 @@
 try:
-    from serfclient.connection import SerfConnection
+    from aioserf.connection import SerfConnection
 except ImportError:
     from connection import SerfConnection
 
 
-class SerfClient(object):
+class AioSerf(object):
     def __init__(self, host='localhost', port=7373, rpc_auth=None, timeout=3):
         self.host = host
         self.port = port

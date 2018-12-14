@@ -1,7 +1,7 @@
 from pkg_resources import get_distribution
-from serfclient.client import SerfClient
-from serfclient.environment_config import EnvironmentConfig
+from aioserf.client import AioSerf
+from aioserf.environment_config import EnvironmentConfig
 
-__version__ = get_distribution('serfclient').version
+__version__ = get_distribution('aioserf').version
 
-__all__ = ['SerfClient', 'EnvironmentConfig']
+__all__ = ['AioSerf', 'EnvironmentConfig']

@@ -1,6 +1,6 @@
 import mock
 
-from serfclient import EnvironmentConfig
+from aioserf import EnvironmentConfig
 
 
 @mock.patch('os.getenv')

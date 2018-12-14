@@ -3,23 +3,23 @@ import pytest
 import re
 
 from contextlib import closing
-from serfclient import client
+from aioserf import client
 
 
-class TestSerfClientCommands(object):
+class TestAioSerfCommands(object):
     """
     Common commands for the library
     """
     @pytest.yield_fixture
     def serf(self):
-        with closing(client.SerfClient()) as serf:
+        with closing(client.AioSerf()) as serf:
             yield serf
 
-    @mock.patch('serfclient.client.SerfConnection')
+    @mock.patch('aioserf.client.SerfConnection')
     def test_rpc_auth(self, mock_serf_connection_class):
         mock_serf_connection = mock.MagicMock()
         mock_serf_connection_class.return_value = mock_serf_connection
-        with closing(client.SerfClient(rpc_auth='secret')) as serf:
+        with closing(client.AioSerf(rpc_auth='secret')) as serf:
             assert serf.connection is not None
         mock_serf_connection.auth.assert_called_once_with('secret')
 

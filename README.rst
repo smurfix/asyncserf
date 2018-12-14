@@ -1,39 +1,39 @@
-serfclient
+aioserf
 ==========
 
 The Python interface to Serf, the decentralised solution for
 service discovery and orchestration.
 
-.. image:: https://secure.travis-ci.org/KushalP/serfclient-py.png?branch=master
+.. image:: https://secure.travis-ci.org/KushalP/aioserf-py.png?branch=master
     :alt: Travis-CI badge
-    :target: http://travis-ci.org/KushalP/serfclient-py
-.. image:: https://gemnasium.com/KushalP/serfclient-py.png
+    :target: http://travis-ci.org/KushalP/aioserf-py
+.. image:: https://gemnasium.com/KushalP/aioserf-py.png
     :alt: Gemnasium badge
-    :target: https://gemnasium.com/KushalP/serfclient-py
-.. image:: https://badge.fury.io/py/serfclient.svg
+    :target: https://gemnasium.com/KushalP/aioserf-py
+.. image:: https://badge.fury.io/py/aioserf.svg
     :alt: PyPI latest version badge
-    :target: https://pypi.python.org/pypi/serfclient
-.. image:: https://coveralls.io/repos/KushalP/serfclient-py/badge.png?branch=master
+    :target: https://pypi.python.org/pypi/aioserf
+.. image:: https://coveralls.io/repos/KushalP/aioserf-py/badge.png?branch=master
     :alt: Code coverage badge
-    :target: https://coveralls.io/r/KushalP/serfclient-py?branch=master
+    :target: https://coveralls.io/r/KushalP/aioserf-py?branch=master
 
 Installation
 ------------
 
-serfclient requires a running Serf agent. See `Serf's agent documentation
+aioserf requires a running Serf agent. See `Serf's agent documentation
 <http://www.serfdom.io/docs/agent/basics.html>`_ for instructions.
 
-To install serfclient, run the following command:
+To install aioserf, run the following command:
 
 .. code-block:: bash
 
-    $ pip install serfclient
+    $ pip install aioserf
 
 or alternatively (you really should be using pip though):
 
 .. code-block:: bash
 
-    $ easy_install serfclient
+    $ easy_install aioserf
 
 or from source:
 
@@ -47,9 +47,9 @@ Getting Started
 .. code-block:: python
 
     from contextlib import closing
-    from serfclient.client import SerfClient
+    from aioserf.client import AioSerf
 
-    with closing(SerfClient()) as client:
+    with closing(AioSerf()) as client:
         client.event('foo', 'bar')
 
 Stream usage:
@@ -57,16 +57,16 @@ Stream usage:
 .. code-block:: python
 
     from contextlib import closing
-    from serfclient.client import SerfClient
+    from aioserf.client import AioSerf
 
-    with closing(SerfClient(timeout=None)) as client:
+    with closing(AioSerf(timeout=None)) as client:
         for response in client.stream('*').body:
             print(response)
 
 Development
 ------------
 
-serfclient requires a running Serf agent. See `Serf's agent documentation
+aioserf requires a running Serf agent. See `Serf's agent documentation
 <http://www.serfdom.io/docs/agent/basics.html>`_ for instructions.
 
 You can run the tests using the following commands:

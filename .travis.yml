@@ -17,9 +17,9 @@ install:
   - pip install 'coverage<4.0.0' coveralls pep8
   - python setup.py develop
 script:
-  - coverage run --source=serfclient setup.py test
+  - coverage run --source=aioserf setup.py test
   - coverage report -m
-  - pep8 --repeat --show-source serfclient tests
+  - pep8 --repeat --show-source aioserf tests
 after_success:
   - coveralls
 notifications:

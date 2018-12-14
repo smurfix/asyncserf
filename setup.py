@@ -35,18 +35,18 @@ if sys.version_info[:2] < (3, 0):
     test_requires.append('mock')
 
 setup(
-    name='serfclient',
+    name='aioserf',
     version='1.2.0',
     description='Python client for the Serf orchestration tool',
     long_description=long_description,
-    url='https://github.com/KushalP/serfclient-py',
+    url='https://github.com/KushalP/aioserf-py',
     author='Kushal Pisavadia',
     author_email='kushal@violentlymild.com',
     maintainer='Kushal Pisavadia',
     maintainer_email='kushal@violentlymild.com',
     keywords=['Serf', 'orchestration', 'service discovery'],
     license='MIT',
-    packages=['serfclient'],
+    packages=['aioserf'],
     install_requires=['msgpack >= 0.5.0'],
     tests_require=test_requires,
     cmdclass={'test': PyTest},

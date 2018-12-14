@@ -3,7 +3,7 @@ import socket
 import time
 
 from contextlib import closing
-from serfclient import connection
+from aioserf import connection
 
 
 def extract_addr(rpc, ip_address, address_family=socket.AF_INET6):
