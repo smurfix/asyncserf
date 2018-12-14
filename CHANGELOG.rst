@@ -1,6 +1,17 @@
 Changelog
 =========
 
+aioserf
++++++++
+
+0.1.0
+-----
+
+- Initial conversion
+
+serfclient
+++++++++++
+
 1.2.0
 -----
 

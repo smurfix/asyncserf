@@ -180,8 +180,6 @@ class SerfConnection(object):
         Serf msgpack 'Addr' as an IPv6 address, and the data needs to be unpack
         using socket.inet_ntop().
 
-        See: https://github.com/KushalP/aioserf-py/issues/20
-
         :param obj_dict: A dictionary containing the msgpack map.
         :return: A dictionary with the correct 'Addr' format.
         """
