@@ -2,6 +2,8 @@
 import os
 import sys
 
+exec(open("trio/_version.py", encoding="utf-8").read())
+
 try:
     from setuptools import setup
     from setuptools.command.test import test as TestCommand
@@ -31,15 +33,12 @@ test_requires = [
     'pytest-cov >= 2.3',
 ]
 
-if sys.version_info[:2] < (3, 0):
-    test_requires.append('mock')
-
 setup(
     name='aioserf',
-    version='1.2.0',
+    version=__version__,
     description='Python client for the Serf orchestration tool',
     long_description=long_description,
-    url='https://github.com/smurfix/aioserf-py',
+    url='https://github.com/smurfix/aioserf',
     author='Matthias Urlichs',
     author_email='matthias@urlichs.de',
     maintainer='Matthias Urlichs',
@@ -47,7 +46,7 @@ setup(
     keywords=['Serf', 'orchestration', 'service discovery', 'anyio'],
     license='MIT',
     packages=['aioserf'],
-    install_requires=['msgpack >= 0.5.0', 'anyio'],
+    install_requires=['msgpack >= 0.5.0', 'anyio', 'outcome', 'async_generator'],
     tests_require=test_requires,
     cmdclass={'test': PyTest},
 )
