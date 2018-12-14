@@ -38,7 +38,7 @@ class SerfConnection(object):
         self._seq = 0
 
     def __repr__(self):
-        return "%(class)s<counter=%(c)s,host=%(h)s,port=%(p)s,timeout=%(t)s>" \
+        return "<%(class)s counter=%(c)s,host=%(h)s,port=%(p)s,timeout=%(t)s>" \
             % {'class': self.__class__.__name__,
                'c': self._seq,
                'h': self.host,
