@@ -4,8 +4,8 @@ aioserf
 AioSerf is an async Python interface to Serf, the decentralised solution
 for service discovery and orchestration.
 
-It uses `anyio <https://github.com/agronholm/anyio>`, thus works with
-asnyio, trio and curio. Hopefully.
+It uses `anyio <https://github.com/agronholm/anyio>`, thus should work with
+``asyncio``, ``trio``, and ``curio``. Hopefully.
 
 .. image:: https://secure.travis-ci.org/smurfix/aioserf.png?branch=master
     :alt: Travis-CI badge
@@ -61,7 +61,7 @@ Stream usage:
     from aioserf import serf_client
 
     async with serf_client() as client:
-        async for response in client.stream('*').body:
+        async for response in client.stream('*'):
             print(response)
 
 Development
@@ -75,4 +75,5 @@ You can run the tests using the following commands:
 .. code-block:: bash
 
     $ serf agent --tag foo=bar & # start serf agent
-    $ python setup.py test
+    $ python3 -mpytest tests
+
