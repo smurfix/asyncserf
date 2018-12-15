@@ -45,3 +45,4 @@ coverage.xml
 [._]s[a-w][a-z]
 *.un~
 *~
+/.pybuild
