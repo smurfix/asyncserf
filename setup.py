@@ -2,7 +2,7 @@
 import os
 import sys
 
-exec(open("trio/_version.py", encoding="utf-8").read())
+exec(open("aioserf/_version.py", encoding="utf-8").read())
 
 try:
     from setuptools import setup
