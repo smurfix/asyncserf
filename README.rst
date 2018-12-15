@@ -1,21 +1,24 @@
 aioserf
 =======
 
-The Python interface to Serf, the decentralised solution for
-service discovery and orchestration.
+AioSerf is an async Python interface to Serf, the decentralised solution
+for service discovery and orchestration.
 
-.. image:: https://secure.travis-ci.org/smurfix/aioserf-py.png?branch=master
+It uses `anyio <https://github.com/agronholm/anyio>`, thus works with
+asnyio, trio and curio. Hopefully.
+
+.. image:: https://secure.travis-ci.org/smurfix/aioserf.png?branch=master
     :alt: Travis-CI badge
-    :target: http://travis-ci.org/smurfix/aioserf-py
-.. image:: https://gemnasium.com/smurfix/aioserf-py.png
+    :target: http://travis-ci.org/smurfix/aioserf
+.. image:: https://gemnasium.com/smurfix/aioserf.png
     :alt: Gemnasium badge
-    :target: https://gemnasium.com/smurfix/aioserf-py
+    :target: https://gemnasium.com/smurfix/aioserf
 .. image:: https://badge.fury.io/py/aioserf.svg
     :alt: PyPI latest version badge
     :target: https://pypi.python.org/pypi/aioserf
-.. image:: https://coveralls.io/repos/smurfix/aioserf-py/badge.png?branch=master
+.. image:: https://coveralls.io/repos/smurfix/aioserf/badge.png?branch=master
     :alt: Code coverage badge
-    :target: https://coveralls.io/r/smurfix/aioserf-py?branch=master
+    :target: https://coveralls.io/r/smurfix/aioserf?branch=master
 
 Installation
 ------------
