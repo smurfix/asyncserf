@@ -1,25 +1,42 @@
-try:
-    from aioserf.connection import SerfConnection
-except ImportError:
-    from connection import SerfConnection
+#
+# async serf client
+# (c) 2018 Matthias Urlichs
 
+import anyio
+from .connection import SerfConnection
+from async_generator import asynccontextmanager
+
+@asynccontextmanager
+async def serf_client(**kw):
+    async with anyio.create_task_group() as tg:
+        client = AioSerf(tg, **kw)
+        async with client._connected():
+            yield client
 
 class AioSerf(object):
-    def __init__(self, host='localhost', port=7373, rpc_auth=None, timeout=3):
+    def __init__(self, tg, host='localhost', port=7373, rpc_auth=None):
+        self.tg = tg
         self.host = host
         self.port = port
-        self.timeout = timeout
-        self.connection = SerfConnection(
-            host=self.host, port=self.port, timeout=self.timeout)
-        self.connection.handshake()
-        if rpc_auth:
-            self.connection.auth(rpc_auth)
+        self.rpc_auth = rpc_auth
+
+    @asynccontextmanager
+    async def _connected(self):
+        self.connection = SerfConnection(self.tg, host=self.host, port=self.port)
+        try:
+            async with self.connection._connected():
+                await self.connection.handshake()
+                if self.rpc_auth:
+                    await self.connection.auth(self.rpc_auth)
+                yield self
+        finally:
+            self.connection = None
 
     def stream(self, event_types='*'):
         if isinstance(event_types, list):
             event_types = ','.join(event_types)
-        return self.connection.call(
-            'stream', {'Type': event_types}, stream=True)
+        return self.connection.stream(
+            'stream', {'Type': event_types})
 
     def event(self, name, payload=None, coalesce=True):
         """
@@ -73,7 +90,7 @@ class AioSerf(object):
             location = [location]
         return self.connection.call(
             'join',
-            {"Existing": location, "Replay": False})
+            {"Existing": location, "Replay": False}, expect_body=2)
 
     def stats(self):
         """
@@ -81,10 +98,3 @@ class AioSerf(object):
         """
         return self.connection.call('stats')
 
-    def close(self):
-        """
-        Close connection to Serf agent.
-        """
-        if self.connection:
-            self.connection.close()
-            self.connection = None

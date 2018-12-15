@@ -3,43 +3,41 @@ import pytest
 import re
 
 from contextlib import closing
-from aioserf import client
+from aioserf import serf_client
 
 
 class TestAioSerfStream(object):
     """
     Common commands for the library
     """
-    @pytest.yield_fixture
-    def serf(self):
-        with closing(client.AioSerf(timeout=None)) as serf:
-            yield serf
+    @pytest.mark.anyio
+    async def test_sending_a_simple_event(self):
+        async with serf_client() as serf:
+            assert (await serf.event('foo', 'bar')).head == {b'Error': b'', b'Seq': 1}
+            assert (await serf.event('bill', 'gates')).head == {b'Error': b'', b'Seq': 2}
 
-    def test_sending_a_simple_event(self, serf):
-        assert serf.event('foo', 'bar').head == {b'Error': b'', b'Seq': 1}
-        assert serf.event('bill', 'gates').head == {b'Error': b'', b'Seq': 2}
+    @pytest.mark.anyio
+    async def test_stream(self):
+        async with serf_client() as serf:
+            async with serf.stream() as response:
+                assert response.head == {b'Error': b'', b'Seq': 1}
+                expected_data = sorted([
+                    [b'bill', b'gates'],
+                    [b'foo', b'bar'],
+                ])
+                all_responses = []
+                async for resp in response:
+                    all_responses.append(resp)
+                    if len(all_responses) == 2:
+                        break
 
-    def test_stream(self, serf):
-        response = serf.stream()
-        assert response.head == {b'Error': b'', b'Seq': 1}
-        expected_data = sorted([
-            [b'bill', b'gates'],
-            [b'foo', b'bar'],
-        ])
-        all_responses = []
-        count = 0
-        for response in response.body:
-            all_responses.append(response)
-            if len(all_responses) == 2:
-                serf.close()
-
-        sorted_responses = sorted([
-            [
-                res.body[b'Name'],
-                res.body[b'Payload'],
-            ] for res in all_responses
-        ])
-        for i, res in enumerate(sorted_responses):
-            expected = expected_data[i]
-            assert res[0] == expected[0]
-            assert res[1] == expected[1]
+            sorted_responses = sorted([
+                [
+                    res.body[b'Name'],
+                    res.body[b'Payload'],
+                ] for res in all_responses
+            ])
+            for i, res in enumerate(sorted_responses):
+                expected = expected_data[i]
+                assert res[0] == expected[0]
+                assert res[1] == expected[1]

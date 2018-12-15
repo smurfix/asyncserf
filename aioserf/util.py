@@ -4,6 +4,7 @@ import attr
 import outcome
 
 import anyio
+from anyio.exceptions import CancelledError
 
 
 @attr.s
@@ -35,7 +36,7 @@ class ValueEvent:
         return self.value is not None
 
     def cancel(self):
-        self.set_error(anyio.CancelledError)
+        return self.set_error(CancelledError())
 
     async def get(self):
         """Block until the value is set.

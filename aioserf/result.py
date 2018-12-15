@@ -7,8 +7,8 @@ class SerfResult(object):
         self.head, self.body = head, body
 
     def __iter__(self):
-        for each in self.__dict__.keys():
-            yield self.__getattribute__(each)
+        yield self.head
+        yield self.body
 
     def __repr__(self):
         return "%(class)s<head=%(h)s,body=%(b)s>" \

@@ -49,21 +49,19 @@ Getting Started
 
 .. code-block:: python
 
-    from contextlib import closing
-    from aioserf.client import AioSerf
+    from aioserf import serf_client
 
-    with closing(AioSerf()) as client:
-        client.event('foo', 'bar')
+    async with serf_client() as client:
+        await client.event('foo', 'bar')
 
 Stream usage:
 
 .. code-block:: python
 
-    from contextlib import closing
-    from aioserf.client import AioSerf
+    from aioserf import serf_client
 
-    with closing(AioSerf(timeout=None)) as client:
-        for response in client.stream('*').body:
+    async with serf_client() as client:
+        async for response in client.stream('*').body:
             print(response)
 
 Development
@@ -76,5 +74,5 @@ You can run the tests using the following commands:
 
 .. code-block:: bash
 
-    $ serf agent --tag foo=bar  # start serf agent
+    $ serf agent --tag foo=bar & # start serf agent
     $ python setup.py test
