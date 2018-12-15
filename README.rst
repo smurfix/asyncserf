@@ -7,12 +7,6 @@ for service discovery and orchestration.
 It uses `anyio <https://github.com/agronholm/anyio>`, thus should work with
 ``asyncio``, ``trio``, and ``curio``. Hopefully.
 
-.. image:: https://secure.travis-ci.org/smurfix/aioserf.png?branch=master
-    :alt: Travis-CI badge
-    :target: http://travis-ci.org/smurfix/aioserf
-.. image:: https://gemnasium.com/smurfix/aioserf.png
-    :alt: Gemnasium badge
-    :target: https://gemnasium.com/smurfix/aioserf
 .. image:: https://badge.fury.io/py/aioserf.svg
     :alt: PyPI latest version badge
     :target: https://pypi.python.org/pypi/aioserf
@@ -47,6 +41,10 @@ or from source:
 Getting Started
 ---------------
 
+These examples require a running async loop.
+`Trio <https://github.com/python-trio/trio>` is recommended, though
+``asyncio`` works too.
+
 .. code-block:: python
 
     from aioserf import serf_client
@@ -61,8 +59,9 @@ Stream usage:
     from aioserf import serf_client
 
     async with serf_client() as client:
-        async for response in client.stream('*'):
-            print(response)
+        async with client.stream('*') as stream:
+            async for resp in stream:
+                print(resp)
 
 Development
 ------------
