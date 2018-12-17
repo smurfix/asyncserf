@@ -1,4 +1,4 @@
-import mock
+import anyio
 import pytest
 import re
 
@@ -7,9 +7,6 @@ from aioserf import serf_client
 
 
 class TestAioSerfStream(object):
-    """
-    Common commands for the library
-    """
     @pytest.mark.anyio
     async def test_sending_a_simple_event(self):
         async with serf_client() as serf:
@@ -22,8 +19,8 @@ class TestAioSerfStream(object):
             async with serf.stream() as response:
                 assert response.head == {b'Error': b'', b'Seq': 1}
                 expected_data = sorted([
-                    [b'bill', b'gates'],
-                    [b'foo', b'bar'],
+                    ['bill', 'gates'],
+                    ['foo', 'bar'],
                 ])
                 all_responses = []
                 async for resp in response:
@@ -33,11 +30,64 @@ class TestAioSerfStream(object):
 
             sorted_responses = sorted([
                 [
-                    res.body[b'Name'],
-                    res.body[b'Payload'],
+                    res.name,
+                    res.payload,
                 ] for res in all_responses
             ])
             for i, res in enumerate(sorted_responses):
                 expected = expected_data[i]
                 assert res[0] == expected[0]
                 assert res[1] == expected[1]
+
+
+class TestAioSerfQuery(object):
+    async def answer_query(self, serf, ev):
+        async with serf.stream("query:foo") as s:
+            await ev.set()
+            async for r in s:
+                assert r.payload == "baz"
+                await r.respond("bar")
+
+    async def ask_query(self, serf):
+        acks = 0
+        reps = 0
+        async with serf.query("foo", payload="baz", request_ack=True) as q:
+            async for r in q:
+                if r.type == "ack":
+                    acks += 1
+                elif r.type == "response":
+                    reps += 1
+                    assert r.payload == "bar"
+                else:
+                    assert False, r
+
+    @pytest.mark.anyio
+    async def test_query(self):
+        async with anyio.create_task_group() as tg:
+            async with serf_client() as serf1:
+                async with serf_client() as serf2:
+                    ev = anyio.create_event()
+                    await tg.spawn(self.answer_query, serf2, ev)
+                    await ev.wait()
+                    await tg.spawn(self.ask_query, serf1)
+
+
+
+class TestAioSerfMonitor(object):
+    @pytest.mark.anyio
+    async def test_sending_a_simple_event(self):
+        async with serf_client() as serf:
+            assert (await serf.event('foo', 'bar')).head == {b'Error': b'', b'Seq': 1}
+            assert (await serf.event('bill', 'gates')).head == {b'Error': b'', b'Seq': 2}
+
+    @pytest.mark.anyio
+    async def test_monitor(self):
+        n = 0
+        async with serf_client() as serf:
+            async with serf.monitor() as response:
+                async for resp in response:
+                    print(resp)
+                    n += 1
+                    if n >= 3:
+                        break
+

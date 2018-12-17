@@ -13,6 +13,55 @@ from .exceptions import SerfError, SerfConnectionError, SerfClosedError
 from logging import getLogger
 logger = getLogger(__name__)
 
+class StreamReply:
+    _running = False
+    send_stop = True
+
+    def __init__(self, conn, command, params, seq, expect_body):
+        self._conn = conn
+        self._command = command
+        self._params = params
+        self.seq = seq
+        self.q = anyio.create_queue(10000)
+        self.expect_body = -expect_body
+    async def set(self, value):
+        await self.q.put(outcome.Value(value))
+    async def set_error(self, err):
+        await self.q.put(outcome.Error(err))
+    async def get(self):
+        res = await self.q.get()
+        if res is not None:
+            res = res.unwrap()
+        return res
+    def __aiter__(self):
+        if not self._running:
+            pass # raise RuntimeError("You need to wrap this in an 'async with'")
+        return self
+    async def __anext__(self):
+        if not self._running:
+            raise StopAsyncIteration
+        res = await self.q.get()
+        if res is None:
+            raise StopAsyncIteration
+        return res.unwrap()
+    async def __aenter__(self):
+        reply = await self._conn._call(self._command, self._params, _reply=self)
+        res = await reply.get()
+        if res is not None:
+            self.head = res.head
+            self._running = True
+        return self
+    async def __aexit__(self, *exc):
+        self._running = False
+        hdl = self._conn._handlers
+        if self.send_stop:
+            async with anyio.open_cancel_scope(shield=True):
+                await self._conn.call("stop", params={b'Stop':self.seq}, expect_body=False)
+        if  hdl is not None:
+            del hdl[self.seq]
+    async def cancel(self):
+        await self.q.put(None)
+
 class SerfConnection(object):
     """
     Manages RPC communication to and from a Serf agent.
@@ -50,43 +99,7 @@ class SerfConnection(object):
         Returns a StreamReply object which affords an async context manager
         plus async iterator, which will return replies.
         """
-        class StreamReply:
-            _running = False
-            def __init__(slf, seq, expect_body):
-                slf.seq = seq
-                slf.q = anyio.create_queue(10)
-                slf.expect_body = -expect_body
-            async def set(slf, value):
-                await slf.q.put(outcome.Value(value))
-            async def set_error(slf, err):
-                await slf.q.put(outcome.Error(err))
-            async def get(slf):
-                res = await slf.q.get()
-                return res.unwrap()
-            def __aiter__(slf):
-                if not slf._running:
-                    raise RuntimeError("You need to wrap this in an 'async with'")
-                return slf
-            async def __anext__(slf):
-                res = await slf.q.get()
-                if res is None:
-                    raise StopAsyncIteration
-                return res.unwrap()
-            async def __aenter__(slf):
-                reply = await self._call(command, params, _reply=slf)
-                slf.head = (await reply.get()).head
-                slf._running = True
-                return slf
-            async def __aexit__(slf, *exc):
-                slf._running = False
-                slf.expect_body = -abs(slf.expect_body)
-                del self._handlers[slf.seq]
-                async with anyio.open_cancel_scope(shield=True):
-                    await self.call("stop", params={b'Stop':slf.seq}, expect_body=False)
-            async def cancel(slf):
-                await slf.q.put(None)
-
-        return StreamReply(self._counter, expect_body)
+        return StreamReply(self, command, params, self._counter, expect_body)
 
 
     async def _call(self, command, params=None, expect_body=True, *, _reply=None):
@@ -94,7 +107,7 @@ class SerfConnection(object):
         Sends the provided command to Serf for evaluation, with
         any parameters as the message body.
 
-        Returns the replay that's been 
+        Returns the reply, if any.
         """
         class SingleReply(ValueEvent):
             def __init__(slf, seq, expect_body):
@@ -102,18 +115,26 @@ class SerfConnection(object):
                 slf.seq = seq
                 slf.expect_body = expect_body
             async def set(slf,val):
-                del self._handlers[slf.seq]
+                if self._handlers is not None:
+                    del self._handlers[slf.seq]
                 await super().set(val)
             async def set_error(slf,err):
-                del self._handlers[slf.seq]
+                if self._handlers is not None:
+                    del self._handlers[slf.seq]
                 await super().set_error(err)
+
+        if self._socket is None:
+            return
 
         if _reply is None:
             seq = self._counter
             _reply = SingleReply(seq, expect_body)
         else:
             seq = _reply.seq
-        self._handlers[seq] = _reply
+        if self._handlers is not None:
+            self._handlers[seq] = _reply
+        else:
+            _reply = None
 
         if params:
             logger.debug("Send %s:%s =%s",seq,command, repr(params))
@@ -129,10 +150,15 @@ class SerfConnection(object):
 
     async def call(self, command, params=None, expect_body=True):
         res = await self._call(command, params, expect_body=expect_body)
+        if res is None:
+            return res
         return await res.get()
 
     async def _handle_msg(self, msg):
         """Handle an incoming message"""
+        if self._handlers is None:
+            logger.warn("Message without handlers:%s", msg)
+            return
         seq = msg.head[b'Seq']
         try:
             hdl = self._handlers[seq]
@@ -183,7 +209,8 @@ class SerfConnection(object):
                             if await self._handle_msg(msg):
                                 cur_msg = msg
             finally:
-                for m in list(self._handlers.values()):
+                hdl, self._handlers = self._handlers, None
+                for m in hdl.values():
                     await m.cancel()
 
     async def handshake(self):

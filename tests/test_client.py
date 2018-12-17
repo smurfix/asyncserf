@@ -16,7 +16,7 @@ class TestAioSerfCommands(object):
 #            mock_serf_connection = mock.MagicMock()
 #            mock_serf_connection_class.return_value = mock_serf_connection
 #            async with serf_client(rpc_auth='secret') as serf:
-#                assert serf.connection is not None
+#                assert serf._conn is not None
 #            mock_serf_connection.auth.assert_called_once_with('secret')
 
     @pytest.mark.anyio
@@ -28,7 +28,7 @@ class TestAioSerfCommands(object):
     @pytest.mark.anyio
     async def test_initialises_a_serf_connection_on_creation(self):
         async with serf_client() as serf:
-            assert serf.connection is not None
+            assert serf._conn is not None
 
     @pytest.mark.anyio
     async def test_sending_a_simple_event(self):
@@ -150,5 +150,5 @@ class TestAioSerfCommands(object):
     @pytest.mark.anyio
     async def test_close(self):
         async with serf_client() as serf:
-            assert serf.connection is not None
-        assert serf.connection is None
+            assert serf._conn is not None
+        assert serf._conn is None

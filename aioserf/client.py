@@ -4,6 +4,8 @@
 
 import anyio
 from .connection import SerfConnection
+from .stream import SerfStream, SerfQuery
+from .codec import MsgPackCodec
 from async_generator import asynccontextmanager
 
 @asynccontextmanager
@@ -14,36 +16,113 @@ async def serf_client(**kw):
             yield client
 
 class AioSerf(object):
-    def __init__(self, tg, host='localhost', port=7373, rpc_auth=None):
+    def __init__(self, tg, host='localhost', port=7373, rpc_auth=None,
+            codec=None):
         self.tg = tg
         self.host = host
         self.port = port
         self.rpc_auth = rpc_auth
+        if codec is None:
+            codec = MsgPackCodec()
+        self.codec = codec
 
     @asynccontextmanager
     async def _connected(self):
-        self.connection = SerfConnection(self.tg, host=self.host, port=self.port)
+        self._conn = SerfConnection(self.tg, host=self.host, port=self.port)
         try:
-            async with self.connection._connected():
-                await self.connection.handshake()
+            async with self._conn._connected():
+                await self._conn.handshake()
                 if self.rpc_auth:
-                    await self.connection.auth(self.rpc_auth)
+                    await self._conn.auth(self.rpc_auth)
                 yield self
         finally:
-            self.connection = None
+            if self._conn is not None:
+                await self._conn.call("leave")
+            self._conn = None
 
     def stream(self, event_types='*'):
+        """
+        Open an event stream.
+
+        Possible event types:
+
+        * ``*`` -- all events
+        * ``user`` -- all user events
+        * ``user:TYPE`` -- all user events of type TYPE
+        * ``query`` -- all queries
+        * ``query:TYPE`` -- all queries of type TYPE
+        * ``member-join``
+        * ``member-leave``
+
+        This method returns a SerfStream object which affords an async
+        context manager plus async iterator, which will give you SerfEvent
+        objects, which you can use to return a reply (if triggered by a
+        "query" event).
+
+        Replies have a "respond" method which you may use to send
+        responses to queries.
+
+        Example Usage::
+
+            >>> async with client.stream("user") as stream:
+            >>>     async for event in stream:
+            >>>         msg = await dispatch(event.type)(event.payload)
+            >>>         await event.respond(msg)
+
+        though you might want to process messages in a task group::
+
+            >>> async def in_tg(event):
+            >>>     msg = await dispatch(event.type)(event.payload)
+            >>>     await event.respond(msg)
+            >>> async with anyio.create_task_group() as tg:
+            >>>     async with client.stream("query") as stream:
+            >>>         async for event in stream:
+            >>>             await tg.spawn(in_tg, event)
+
+        """
         if isinstance(event_types, list):
             event_types = ','.join(event_types)
-        return self.connection.stream(
-            'stream', {'Type': event_types})
+        res = self._conn.stream('stream', {'Type': event_types})
+        return SerfStream(self, res)
+
+    def query(self, name, payload=None, *, nodes=None, tags=None,
+            request_ack=False, timeout=0):
+        """
+        Send a query, expect a stream of replies.
+        """
+        params = {'name': name, 'RequestAck': request_ack}
+        if payload is not None:
+            params['Payload'] = self.codec.encode(payload)
+        if nodes:
+            params['FilterNodes'] = list(nodes)
+        if tags:
+            params['FilterTags'] = dict(tags)
+        if timeout:
+            params['Timeout'] = timeout
+
+        res = self._conn.stream('query', params)
+        return SerfQuery(self, res)
+
+    def monitor(self, log_level='DEBUG'):
+        res = self._conn.stream('monitor', {'LogLevel': log_level})
+        return SerfStream(self, res)
+
+    def respond(self, seq, payload):
+        if seq is None:
+            raise RuntimeError("You cannot respond to this message.")
+        if payload is not None:
+            payload = self.codec.encode(payload)
+        return self._conn.call("respond", {'ID': seq, 'Payload': payload})
+
 
     def event(self, name, payload=None, coalesce=True):
         """
         Send an event to the cluster. Can take an optional payload as well,
         which will be sent in the form that it's provided.
         """
-        return self.connection.call(
+        if payload is not None:
+            payload = self.codec.encode(payload)
+        return self._conn.call(
             'event',
             {'Name': name, 'Payload': payload, 'Coalesce': coalesce},
             expect_body=False)
@@ -70,15 +149,30 @@ class AioSerf(object):
             filters['Tags'] = tags
 
         if len(filters) == 0:
-            return self.connection.call('members')
+            return self._conn.call('members')
         else:
-            return self.connection.call('members-filtered', filters)
+            return self._conn.call('members-filtered', filters)
+
+    def tags(self, **tags):
+        """Set this node's tags.
+
+        Delete tags by setting its value to None.
+        """
+        deleted = []
+        for k,v in list(tags.items()):
+            if v is None:
+                del tags[k]
+                deleted.append(k)
+        tags = {'Tags': tags}
+        if deleted:
+            tags['DeleteTags'] = deleted
+        return self._conn.call('tags', tags)
 
     def force_leave(self, name):
         """
         Force a node to leave the cluster.
         """
-        return self.connection.call(
+        return self._conn.call(
             'force-leave',
             {"Node": name}, expect_body=False)
 
@@ -88,7 +182,7 @@ class AioSerf(object):
         """
         if not isinstance(location, (list, tuple)):
             location = [location]
-        return self.connection.call(
+        return self._conn.call(
             'join',
             {"Existing": location, "Replay": False}, expect_body=2)
 
@@ -96,5 +190,5 @@ class AioSerf(object):
         """
         Obtain operator debugging information about the running Serf agent.
         """
-        return self.connection.call('stats')
+        return self._conn.call('stats')
 

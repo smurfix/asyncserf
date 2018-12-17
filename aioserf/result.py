@@ -18,9 +18,3 @@ class SerfResult(object):
                'h': self.head,
                'b': self.body}
 
-    async def reply(self, client, params=None):
-        """for queries"""
-        await client.connection.call(b"respond", {
-            b'ID':self.body[b'ID'],
-            b'Payload':msgpack.packb(params),
-            })
