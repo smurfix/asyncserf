@@ -90,7 +90,7 @@ class AioSerf(object):
         """
         Send a query, expect a stream of replies.
         """
-        params = {'name': name, 'RequestAck': request_ack}
+        params = {'Name': name, 'RequestAck': request_ack}
         if payload is not None:
             params['Payload'] = self.codec.encode(payload)
         if nodes:
@@ -112,7 +112,7 @@ class AioSerf(object):
             raise RuntimeError("You cannot respond to this message.")
         if payload is not None:
             payload = self.codec.encode(payload)
-        return self._conn.call("respond", {'ID': seq, 'Payload': payload})
+        return self._conn.call("respond", {'ID': seq, 'Payload': payload}, expect_body=False)
 
 
     def event(self, name, payload=None, coalesce=True):

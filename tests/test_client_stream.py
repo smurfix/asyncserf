@@ -5,6 +5,7 @@ import re
 from contextlib import closing
 from aioserf import serf_client
 
+NS=1000*1000*1000 # nanoseconds per second
 
 class TestAioSerfStream(object):
     @pytest.mark.anyio
@@ -48,11 +49,14 @@ class TestAioSerfQuery(object):
                 assert r.payload == "baz"
                 await r.respond("bar")
 
-    async def ask_query(self, serf):
+    async def ask_query(self, serf, ev):
         acks = 0
         reps = 0
-        async with serf.query("foo", payload="baz", request_ack=True) as q:
+        async with serf.query("foo", payload="baz", request_ack=True,
+                timeout=1*NS) as q:
             async for r in q:
+                if not hasattr(r,'type'):
+                    break
                 if r.type == "ack":
                     acks += 1
                 elif r.type == "response":
@@ -60,16 +64,21 @@ class TestAioSerfQuery(object):
                     assert r.payload == "bar"
                 else:
                     assert False, r
+        assert reps > 0
+        assert acks > 0
+        await ev.set()
 
     @pytest.mark.anyio
     async def test_query(self):
         async with anyio.create_task_group() as tg:
             async with serf_client() as serf1:
                 async with serf_client() as serf2:
-                    ev = anyio.create_event()
-                    await tg.spawn(self.answer_query, serf2, ev)
-                    await ev.wait()
-                    await tg.spawn(self.ask_query, serf1)
+                    ev1 = anyio.create_event()
+                    ev2 = anyio.create_event()
+                    await tg.spawn(self.answer_query, serf2, ev1)
+                    await ev1.wait()
+                    await tg.spawn(self.ask_query, serf1, ev2)
+                    await ev2.wait()
 
 
 

@@ -13,6 +13,8 @@ from .exceptions import SerfError, SerfConnectionError, SerfClosedError
 from logging import getLogger
 logger = getLogger(__name__)
 
+_conn_id = 0
+
 class StreamReply:
     _running = False
     send_stop = True
@@ -57,8 +59,9 @@ class StreamReply:
         if self.send_stop:
             async with anyio.open_cancel_scope(shield=True):
                 await self._conn.call("stop", params={b'Stop':self.seq}, expect_body=False)
-        if  hdl is not None:
-            del hdl[self.seq]
+                if hdl is not None:
+                    # TODO remember this for a while?
+                    del hdl[self.seq]
     async def cancel(self):
         await self.q.put(None)
 
@@ -70,8 +73,12 @@ class SerfConnection(object):
     # Read from the RPC socket in blocks of this many bytes.
     # (Typically 4k)
     _socket_recv_size = resource.getpagesize()
+    _conn_id = 0
 
     def __init__(self, tg, host='localhost', port=7373):
+        global _conn_id
+        _conn_id += 1
+        self._conn_id = _conn_id
         self.tg = tg
         self.host = host
         self.port = port
@@ -137,9 +144,9 @@ class SerfConnection(object):
             _reply = None
 
         if params:
-            logger.debug("Send %s:%s =%s",seq,command, repr(params))
+            logger.debug("%d:Send %s:%s =%s", self._conn_id,seq,command, repr(params))
         else:
-            logger.debug("Send %s:%s",seq,command)
+            logger.debug("%d:Send %s:%s", self._conn_id,seq,command)
         msg = msgpack.packb({"Seq": seq, "Command": command})
         if params is not None:
             msg += msgpack.packb(params)
@@ -159,7 +166,10 @@ class SerfConnection(object):
         if self._handlers is None:
             logger.warn("Message without handlers:%s", msg)
             return
-        seq = msg.head[b'Seq']
+        try:
+            seq = msg.head[b'Seq']
+        except KeyError:
+            raise RuntimeError("Reader got out of sync: "+str(msg))
         try:
             hdl = self._handlers[seq]
         except KeyError:
@@ -191,7 +201,7 @@ class SerfConnection(object):
             try:
                 while self._socket is not None:
                     if cur_msg is not None:
-                        logger.debug("wait for body")
+                        logger.debug("%d:wait for body", self._conn_id)
                     buf = await self._socket.receive_some(self._socket_recv_size)
                     if len(buf) == 0:  # Connection was closed.
                         raise SerfClosedError("Connection closed by peer")
@@ -199,12 +209,12 @@ class SerfConnection(object):
 
                     for msg in unpacker:
                         if cur_msg is not None:
-                            logger.debug(" Body=%s",msg)
+                            logger.debug("%d  Body=%s",self._conn_id,msg)
                             cur_msg.body = msg
                             await self._handle_msg(cur_msg)
                             cur_msg = None
                         else:
-                            logger.debug("Recv =%s",msg)
+                            logger.debug("%d:Recv =%s",self._conn_id, msg)
                             msg = SerfResult(msg)
                             if await self._handle_msg(msg):
                                 cur_msg = msg

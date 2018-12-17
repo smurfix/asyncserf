@@ -53,11 +53,19 @@ class SerfStream:
 
 
 class SerfQuery(SerfStream):
+    def __init__(self, client, stream):
+        super().__init__(client, stream)
+        self.stream.send_stop = False
+
     async def __anext__(self):
-        res = await self.stream.__anext__()
+        res = await super().__anext__()
         if res.type == "done":
-            self.stream.send_stop = False
+            try:
+                del self.client._conn._handlers[self.stream.seq]
+            except AttributeError:
+                pass
             raise StopAsyncIteration
+        return res
 
 
 class SerfEvent:
@@ -73,7 +81,7 @@ class SerfEvent:
     async def respond(self, payload):
         await self.client.respond(self.id, payload)
         if payload is not None:
-            payload = self.client.codec.encode(seq, payload)
+            payload = self.client.codec.encode(payload)
 
     def __repr__(self):
         return "<%s: %s>" % (self.__class__.__name__, ",".join("%s:%s" %(str(k),repr(v)) for k,v in vars(self).items() if not k.startswith('_')))
