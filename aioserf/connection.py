@@ -22,7 +22,7 @@ class SerfConnection(object):
     # (Typically 4k)
     _socket_recv_size = resource.getpagesize()
 
-    def __init__(self, tg, host='localhost', port=7373, timeout=3):
+    def __init__(self, tg, host='localhost', port=7373):
         self.tg = tg
         self.host = host
         self.port = port
