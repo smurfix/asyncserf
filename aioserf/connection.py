@@ -4,6 +4,7 @@ import msgpack
 import resource
 from async_generator import asynccontextmanager
 import anyio
+from anyio.exceptions import ClosedResourceError
 import outcome
 
 from .result import SerfResult
@@ -202,7 +203,10 @@ class SerfConnection(object):
                 while self._socket is not None:
                     if cur_msg is not None:
                         logger.debug("%d:wait for body", self._conn_id)
-                    buf = await self._socket.receive_some(self._socket_recv_size)
+                    try:
+                        buf = await self._socket.receive_some(self._socket_recv_size)
+                    except ClosedResourceError:
+                        return # closed by us
                     if len(buf) == 0:  # Connection was closed.
                         raise SerfClosedError("Connection closed by peer")
                     unpacker.feed(buf)
@@ -220,8 +224,9 @@ class SerfConnection(object):
                                 cur_msg = msg
             finally:
                 hdl, self._handlers = self._handlers, None
-                for m in hdl.values():
-                    await m.cancel()
+                async with anyio.open_cancel_scope(shield=True):
+                    for m in hdl.values():
+                        await m.cancel()
 
     async def handshake(self):
         """
