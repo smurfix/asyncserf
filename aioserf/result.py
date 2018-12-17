@@ -1,3 +1,5 @@
+import msgpack
+
 class SerfResult(object):
     """
     Bounded result object for responses from a Serf agent.
@@ -15,3 +17,10 @@ class SerfResult(object):
             % {'class': self.__class__.__name__,
                'h': self.head,
                'b': self.body}
+
+    async def reply(self, client, params=None):
+        """for queries"""
+        await client.connection.call(b"respond", {
+            b'ID':self.body[b'ID'],
+            b'Payload':msgpack.packb(params),
+            })

@@ -47,7 +47,8 @@ class SerfConnection(object):
         Sends the provided command to Serf for evaluation, with
         any parameters as the message body. Expect a streamed reply.
 
-        Returns an async context manager plus iterator over any replies.
+        Returns a StreamReply object which affords an async context manager
+        plus async iterator, which will return replies.
         """
         class StreamReply:
             _running = False
@@ -68,6 +69,8 @@ class SerfConnection(object):
                 return slf
             async def __anext__(slf):
                 res = await slf.q.get()
+                if res is None:
+                    raise StopAsyncIteration
                 return res.unwrap()
             async def __aenter__(slf):
                 reply = await self._call(command, params, _reply=slf)
@@ -79,7 +82,9 @@ class SerfConnection(object):
                 slf.expect_body = -abs(slf.expect_body)
                 del self._handlers[slf.seq]
                 async with anyio.open_cancel_scope(shield=True):
-                    await self.call("stop", params={'Stop':slf.seq}, expect_body=False)
+                    await self.call("stop", params={b'Stop':slf.seq}, expect_body=False)
+            async def cancel(slf):
+                await slf.q.put(None)
 
         return StreamReply(self._counter, expect_body)
 
@@ -154,27 +159,32 @@ class SerfConnection(object):
         unpacker = msgpack.Unpacker(object_hook=self._decode_addr_key)
         cur_msg = None
 
-        async with anyio.open_cancel_scope() as s:
+        async with anyio.open_cancel_scope(shield=True) as s:
             await scope.set(s)
-            while True:
-                if cur_msg is not None:
-                    logger.debug("wait for body")
-                buf = await self._socket.receive_some(self._socket_recv_size)
-                if len(buf) == 0:  # Connection was closed.
-                    raise SerfClosedError("Connection closed by peer")
-                unpacker.feed(buf)
 
-                for msg in unpacker:
+            try:
+                while self._socket is not None:
                     if cur_msg is not None:
-                        logger.debug(" Body=%s",msg)
-                        cur_msg.body = msg
-                        await self._handle_msg(cur_msg)
-                        cur_msg = None
-                    else:
-                        logger.debug("Recv =%s",msg)
-                        msg = SerfResult(msg)
-                        if await self._handle_msg(msg):
-                            cur_msg = msg
+                        logger.debug("wait for body")
+                    buf = await self._socket.receive_some(self._socket_recv_size)
+                    if len(buf) == 0:  # Connection was closed.
+                        raise SerfClosedError("Connection closed by peer")
+                    unpacker.feed(buf)
+
+                    for msg in unpacker:
+                        if cur_msg is not None:
+                            logger.debug(" Body=%s",msg)
+                            cur_msg.body = msg
+                            await self._handle_msg(cur_msg)
+                            cur_msg = None
+                        else:
+                            logger.debug("Recv =%s",msg)
+                            msg = SerfResult(msg)
+                            if await self._handle_msg(msg):
+                                cur_msg = msg
+            finally:
+                for m in list(self._handlers.values()):
+                    await m.cancel()
 
     async def handshake(self):
         """
@@ -201,9 +211,12 @@ class SerfConnection(object):
         except socket.error as e:
             raise SerfConnectionError(self.host, self.port) from e
         finally:
+            if self._socket is not None:
+                await self._socket.close()
+                self._socket = None
             if reader is not None:
                 await reader.cancel()
-            self._socket = None
+                reader = None
 
     @property
     def _counter(self):
