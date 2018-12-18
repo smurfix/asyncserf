@@ -56,9 +56,10 @@ class SerfStream:
     def body(self):
         return self._ctx.body
 
-    def cancel(self):
+    async def cancel(self):
+        """Tell the server to cancel the query, if possible."""
         if self._it is not None:
-            return self._it.cancel()
+            return await self._it.cancel()
 
 
 class SerfQuery(SerfStream):
