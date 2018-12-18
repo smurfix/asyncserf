@@ -5,17 +5,27 @@
 import anyio
 from .connection import SerfConnection
 from .stream import SerfStream, SerfQuery
-from .codec import MsgPackCodec
+from .codec import NoopCodec
+from .util import ValueEvent
 from async_generator import asynccontextmanager
 
 @asynccontextmanager
 async def serf_client(**kw):
+
     async with anyio.create_task_group() as tg:
         client = AioSerf(tg, **kw)
         async with client._connected():
             yield client
 
 class AioSerf(object):
+    """
+    The main adapter.
+
+    Args:
+      ``tg``: the task group to use. Typically passed in by
+              :func:`serf_client`.
+
+    """
     def __init__(self, tg, host='localhost', port=7373, rpc_auth=None,
             codec=None):
         self.tg = tg
@@ -23,7 +33,7 @@ class AioSerf(object):
         self.port = port
         self.rpc_auth = rpc_auth
         if codec is None:
-            codec = MsgPackCodec()
+            codec = NoopCodec()
         self.codec = codec
 
     @asynccontextmanager
@@ -39,6 +49,29 @@ class AioSerf(object):
             if self._conn is not None:
                 await self._conn.call("leave")
             self._conn = None
+
+    async def _spawn(self, val, proc, args, kw):
+        async with anyio.open_cancel_scope() as scope:
+            await val.set(scope)
+            await proc(*args, **kw)
+
+    async def spawn(self, proc, *args, **kw):
+        """
+        Run a task within this object's task group.
+
+        Returns:
+          a cancel scope you can use to stop the task.
+        """
+        val = ValueEvent()
+        await self.tg.spawn(self._spawn, val, proc, args, kw)
+        return await val.get()
+
+    async def cancel(self):
+        """
+        Cancel our internal task group. This should cleanly shut down
+        everything.
+        """
+        await self.tg.cancel_scope.cancel()
 
     def stream(self, event_types='*'):
         """
@@ -104,10 +137,21 @@ class AioSerf(object):
         return SerfQuery(self, res)
 
     def monitor(self, log_level='DEBUG'):
+        """
+        Ask the server to sream log entries.
+
+        :Args:
+          ``log_level``: The debug level.
+        """
         res = self._conn.stream('monitor', {'LogLevel': log_level})
         return SerfStream(self, res)
 
     def respond(self, seq, payload):
+        """
+        Respond to a query.
+
+        You should probably call this via :class:`aioserf.stream.SerfEvent`.
+        """
         if seq is None:
             raise RuntimeError("You cannot respond to this message.")
         if payload is not None:
@@ -117,8 +161,14 @@ class AioSerf(object):
 
     def event(self, name, payload=None, coalesce=True):
         """
-        Send an event to the cluster. Can take an optional payload as well,
-        which will be sent in the form that it's provided.
+        Send a user-specified event to the cluster. Can take an optional
+        payload, which will be sent as translated by the client's codec.
+
+        Args:
+          ``name``: The name of the user event.
+          ``payload``: The payload, as acceptable to the codec's ``encode`` method.
+          ``coalesce``: A flag specifying whether multiple events with
+                        the same name should be replaced by 
         """
         if payload is not None:
             payload = self.codec.encode(payload)
@@ -132,10 +182,12 @@ class AioSerf(object):
         Lists members of a Serf cluster, optionally filtered by one or more
         filters:
 
-        `name` is a string, supporting regex matching on node names.
-        `status` is a string, supporting regex matching on node status.
-        `tags` is a dict of tag names and values, supporting regex matching
-        on values.
+        Args:
+          ``name``: a string with a regex that matches on node names.
+          ``status``: a string with a regex matching on node status.
+          ``tags``: a dict of tag names to regex values.
+
+        All arguments must match for a node to be returned.
         """
         filters = {}
 
@@ -156,7 +208,10 @@ class AioSerf(object):
     def tags(self, **tags):
         """Set this node's tags.
 
-        Delete tags by setting its value to None.
+        Tags that are not mentioned are not changed. You can
+        delete a tag by passing ``None`` as its value.
+
+        All keyword arguments are used as tags to be set or deleted.
         """
         deleted = []
         for k,v in list(tags.items()):
@@ -168,23 +223,93 @@ class AioSerf(object):
             tags['DeleteTags'] = deleted
         return self._conn.call('tags', tags)
 
+    def leave(name):
+        """
+        Terminate this Serf instance.
+
+        This will ultmately shut down the connection, probably with an
+        error.
+        """
+        return self._conn.call('leave', expect_body=False)
+
     def force_leave(self, name):
         """
         Force a node to leave the cluster.
+
+        Args:
+          ``name``: the name of the node that should leave.
         """
         return self._conn.call(
             'force-leave',
             {"Node": name}, expect_body=False)
 
-    def join(self, location):
+    def install_key(self, key):
         """
-        Join another cluster by provided a list of ip:port locations.
+        Install a new encryption key onto the cluster's keyring.
+
+        Args:
+          ``key``: the new 16-byte key, base64-encoded.
+        """
+        return self._conn.call(
+            'install-key',
+            {"Key": key}, expect_body=True)
+
+    def use_key(self, key):
+        """
+        Change the cluster's primary encryption key.
+
+        Args:
+          ``key``: an existing 16-byte key, base64-encoded.
+        """
+        return self._conn.call(
+            'use-key',
+            {"Key": key}, expect_body=True)
+
+    def remove_key(self, key):
+        """
+        Remove an encryption key from the cluster.
+
+        Args:
+          ``key``: the obsolete 16-byte key, base64-encoded.
+        """
+        return self._conn.call(
+            'remove-key',
+            {"Key": key}, expect_body=True)
+
+    def list_keys(self):
+        """
+        Return a list of all encryption keys.
+
+        """
+        return self._conn.call('list-keys', expect_body=True)
+
+    def join(self, location, replay=False):
+        """
+        Ask Serf to join a cluster, by providing a list of ip:port locations.
+
+        Args:
+          ``location``: A list of addresses.
+          ``replay``: a flag indicating whether to replay old user events
+                      to new nodes; defaults to ``False``.
+
         """
         if not isinstance(location, (list, tuple)):
             location = [location]
         return self._conn.call(
             'join',
-            {"Existing": location, "Replay": False}, expect_body=2)
+            {"Existing": location, "Replay": replay}, expect_body=2)
+
+    def get_coordinate(self, node):
+        """
+        Return the network coordinate of a given node.
+
+        Args:
+          ``node``: The node to request
+
+        """
+        return self._conn.call(
+            ' get-coordinate',
+            {"Node": node}, expect_body=True)
 
     def stats(self):
         """

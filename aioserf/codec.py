@@ -2,7 +2,17 @@
 
 import msgpack
 
-__all__ = ['UTF8Codec', 'MsgPackCodec']
+__all__ = [
+        'UTF8Codec',
+        'MsgPackCodec',
+        'NoopCodec',
+    ]
+
+class NoopCodec:
+    def encode(self, data):
+        return data
+    def decode(self, data):
+        return data
 
 class UTF8Codec:
     def encode(self, data):

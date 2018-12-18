@@ -2,7 +2,16 @@
 
 class SerfStream:
     """
-    Represents the data stream from a call to ``client.stream()``.
+    An object of this class is returned by :meth:`aioserf.AioSerf.stream`.
+
+    All you should do with this object is iterate over it with an async
+    context::
+
+        async with client.stream(...) as stream:
+            assert isinstance(stream, SerfStream)
+            async for reply in stream:
+                assert isinstance(reply, SerfEvent)
+                pass
     """
     _it = None
 
@@ -53,6 +62,18 @@ class SerfStream:
 
 
 class SerfQuery(SerfStream):
+    """
+    An object of this class is returned by :meth:`aioserf.AioSerf.query`.
+
+    All you should do with this object is iterate over it with an async
+    context::
+
+        async with client.query(...) as query:
+            assert isinstance(query, SerfQuery)
+            async for reply in query:
+                assert isinstance(reply, SerfEvent)
+                pass
+    """
     def __init__(self, client, stream):
         super().__init__(client, stream)
         self.stream.send_stop = False
@@ -70,7 +91,7 @@ class SerfQuery(SerfStream):
 
 class SerfEvent:
     """
-    Encapsulates one event on a SerfStream.
+    Encapsulates one event returned by a :class:`SerfStream` or :class:`SerfQuery`.
     """
     id = None
     payload = None
@@ -78,10 +99,18 @@ class SerfEvent:
     def __init__(self, client):
         self.client = client
 
-    async def respond(self, payload):
+    async def respond(self, payload=None):
+        """
+        This method only works for "query" requests, as returned by
+        iterating over a :class:`SerfStream`.
+
+        Args:
+          ``payload``: the payload, as accepted by the client codec's
+                       ``encode`` method.
+        """
+        if self.id is None:
+            raise RuntimeError("This is not in reply to a query")
         await self.client.respond(self.id, payload)
-        if payload is not None:
-            payload = self.client.codec.encode(payload)
 
     def __repr__(self):
         return "<%s: %s>" % (self.__class__.__name__, ",".join("%s:%s" %(str(k),repr(v)) for k,v in vars(self).items() if not k.startswith('_')))
