@@ -131,7 +131,7 @@ class AioSerf(object):
         if tags:
             params['FilterTags'] = dict(tags)
         if timeout:
-            params['Timeout'] = timeout
+            params['Timeout'] = int(timeout * 10**9)
 
         res = self._conn.stream('query', params)
         return SerfQuery(self, res)
