@@ -13,12 +13,18 @@ class ValueEvent:
     inspired by :class:`threading.Event`.
 
     An event object manages an internal value, which is initially
-    unset, and tasks can wait for it to become True.
+    unset, and a task can wait for it to become True.
 
+    Args:
+      ``scope``:  A cancelation scope that will be cancelled if/when
+                  this ValueEvent is. Used for clean cancel propagation.
+
+    Note that the value can only be read once.
     """
 
     event = attr.ib(factory=anyio.create_event, init=False)
     value = attr.ib(default=None, init=False)
+    scope = attr.ib(default=None, init=True)
 
     async def set(self, value):
         """Set the result to return this value, and wake any waiting task.
@@ -33,17 +39,25 @@ class ValueEvent:
         await self.event.set()
 
     def is_set(self):
+        """Check whether the event has occurred.
+        """
         return self.value is not None
 
-    def cancel(self):
-        return self.set_error(CancelledError())
+    async def cancel(self):
+        """Send a cancelation to the recipient.
+
+        TODO: Trio can't do that cleanly.
+        """
+        if self.scope is not None:
+            await self.scope.cancel()
+        return await self.set_error(CancelledError())
 
     async def get(self):
         """Block until the value is set.
 
-        If it's already True, then this method is still a checkpoint, but
-        otherwise returns immediately.
+        If it's already set, then this method returns immediately.
 
+        The value can only be read once.
         """
         await self.event.wait()
         return self.value.unwrap()
