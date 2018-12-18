@@ -1,8 +1,6 @@
 import anyio
 import pytest
-import re
 
-from contextlib import closing
 from aioserf import serf_client
 
 NS = 1000 * 1000 * 1000  # nanoseconds per second

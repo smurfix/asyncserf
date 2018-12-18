@@ -1,8 +1,6 @@
-import mock
 import pytest
 import re
 
-from contextlib import closing
 from aioserf import serf_client, SerfError
 
 
@@ -58,10 +56,10 @@ class TestAioSerfCommands(object):
         async with serf_client() as serf:
             address = '127.0.0.1:23000'
             with pytest.raises(SerfError) as e:
-                join = await serf.join([address])
+                await serf.join([address])
             assert 'dial tcp' in str(e.value)
             with pytest.raises(SerfError) as e:
-                join = await serf.join([address])
+                await serf.join([address])
             assert 'dial tcp' in str(e.value)
 
     @pytest.mark.anyio

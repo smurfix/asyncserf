@@ -1,9 +1,7 @@
 import pytest
 import socket
-import time
 import anyio
 
-from contextlib import closing
 from aioserf import connection
 
 from async_generator import asynccontextmanager
@@ -50,7 +48,7 @@ class TestSerfConnection(object):
     @pytest.mark.anyio
     async def test_connection_to_bad_socket_throws_exception(self):
         with pytest.raises(connection.SerfConnectionError) as exceptionInfo:
-            async with rpc_connect(port=40000) as rpc:
+            async with rpc_connect(port=40000):
                 pass
         assert isinstance(exceptionInfo.value.__cause__, ConnectionRefusedError)
 

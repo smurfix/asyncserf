@@ -58,7 +58,7 @@ class AioSerf(object):
     async def _connected(self):
         """
         Helper to manage the underlying connection.
-        
+
         This is an async context manager.
         """
         self._conn = SerfConnection(self.tg, host=self.host, port=self.port)
@@ -226,7 +226,7 @@ class AioSerf(object):
           ``name``: The name of the user event.
           ``payload``: The payload, as acceptable to the codec's ``encode`` method.
           ``coalesce``: A flag specifying whether multiple events with
-                        the same name should be replaced by 
+                        the same name should be replaced by
         """
         if payload is not None:
             payload = self.codec.encode(payload)
@@ -286,7 +286,7 @@ class AioSerf(object):
             tags['DeleteTags'] = deleted
         return self._conn.call('tags', tags)
 
-    def leave(name):
+    def leave(self, name):
         """
         Terminate the Serf instance you're connected to.
 

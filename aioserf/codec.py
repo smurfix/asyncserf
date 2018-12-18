@@ -11,7 +11,7 @@ __all__ = [
 
 class NoopCodec:
     """A codec that does nothing.
-    
+
     Your payload needs to consist of bytes.
     """
 
@@ -24,9 +24,9 @@ class NoopCodec:
 
 class UTF8Codec:
     """A codec that translates to UTF-8 strings.
-    
+
     Your payload needs to be a single string.
-    
+
     This codec will *not* stringify other data types for you.
     """
 

@@ -30,6 +30,8 @@ AUTOSPHINXOPTS := -i *~ -i *.sw* -i Makefile*
 SPHINXBUILDDIR ?= $(BUILD_DIR)/sphinx/html
 ALLSPHINXOPTS ?= -d $(BUILD_DIR)/sphinx/doctrees $(SPHINXOPTS) docs
 
+check:
+	flake8 aioserf setup.py tests examples
 doc:
 	$(SPHINXBUILD) -a $(INPUT_DIR) $(BUILD_DIR)
 

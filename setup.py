@@ -34,7 +34,7 @@ test_requires = [
 
 setup(
     name='aioserf',
-    version=__version__,
+    version=__version__,  # noqa: F821
     description='Python client for the Serf orchestration tool',
     long_description=long_description,
     url='https://github.com/smurfix/aioserf',

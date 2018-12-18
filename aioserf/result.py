@@ -1,4 +1,4 @@
-import msgpack
+# simple result class
 
 
 class SerfResult(object):

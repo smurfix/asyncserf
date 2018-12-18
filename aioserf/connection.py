@@ -1,5 +1,4 @@
 import socket
-import sys
 import msgpack
 import resource
 from async_generator import asynccontextmanager
@@ -230,7 +229,7 @@ class SerfConnection(object):
 
     async def _reader(self, scope):
         """Main loop for reading
-        
+
         TODO: add a timeout for receiving message bodies.
         """
         unpacker = msgpack.Unpacker(object_hook=self._decode_addr_key)

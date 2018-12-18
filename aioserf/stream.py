@@ -82,7 +82,7 @@ class SerfQuery(SerfStream):
                 pass
 
     This is a derivative class of :class:`SerfStream`.
-    
+
     Cancelling a ``SerfQuery`` has no effect – the query only terminates
     when its timeout expires.
 
