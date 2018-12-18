@@ -5,8 +5,8 @@ from .exceptions import SerfError, SerfConnectionError
 from . import codec
 from ._version import __version__
 
+from .codec import *
+
 __all__ = ['AioSerf', 'serf_client', 'EnvironmentConfig', 'SerfError', 'SerfConnectionError']
 __all__ += codec.__all__
 
-for k in codec.__all__:
-	globals()[k] = getattr(codec,k)
