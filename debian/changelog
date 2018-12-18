@@ -1,3 +1,9 @@
+aioserf (0.2.0-1) unstable; urgency=medium
+
+  * package v0.2
+
+ -- Matthias Urlichs <matthias@urlichs.de>  Tue, 18 Dec 2018 08:07:36 +0100
+
 aioserf (0.1.0-1) smurf; urgency=low
 
   * source package automatically created by stdeb 0.8.5
