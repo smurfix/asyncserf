@@ -273,29 +273,28 @@ class SerfConnection(object):
         """
         Callback function to handle the decoding of the 'Addr' field.
 
-        Serf msgpack 'Addr' as an IPv6 address, and the data needs to be unpack
-        using socket.inet_ntop().
+        Serf msgpack 'Addr' as an IPv6 address, and the data needs to be
+        unpacked using socket.inet_ntop().
 
         :param obj_dict: A dictionary containing the msgpack map.
         :return: A dictionary with the correct 'Addr' format.
         """
         key = b'Addr'
-        if key in obj_dict:
-            try:
-                # Try to convert a packed IPv6 address.
-                # Note: Call raises ValueError if address is actually IPv4.
+        ip_addr = obj_dict.get(key, None)
+        if ip_addr is not None:
+            if len(ip_addr) == 4: # IPv4
+                ip_addr = socket.inet_ntop(socket.AF_INET, obj_dict[key])
+            else:
                 ip_addr = socket.inet_ntop(socket.AF_INET6, obj_dict[key])
 
                 # Check if the address is an IPv4 mapped IPv6 address:
                 # ie. ::ffff:xxx.xxx.xxx.xxx
                 if ip_addr.startswith('::ffff:'):
-                    ip_addr = ip_addr.lstrip('::ffff:')
+                    ip_addr = ip_addr[7:]
 
-                obj_dict[key] = ip_addr.encode('utf-8')
-            except ValueError:
-                # Try to convert a packed IPv4 address.
-                ip_addr = socket.inet_ntop(socket.AF_INET, obj_dict[key])
-                obj_dict[key] = ip_addr.encode('utf-8')
+            # The msgpack codec is set to raw,
+            # thus everything needs to be bytes
+            obj_dict[key] = ip_addr.encode('utf-8')
 
         return obj_dict
 
