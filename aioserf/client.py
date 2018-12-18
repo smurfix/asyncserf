@@ -9,6 +9,7 @@ from .codec import NoopCodec
 from .util import ValueEvent
 from async_generator import asynccontextmanager
 
+
 @asynccontextmanager
 async def serf_client(**kw):
     """
@@ -24,6 +25,7 @@ async def serf_client(**kw):
         async with client._connected():
             yield client
             await tg.cancel_scope.cancel()
+
 
 class AioSerf(object):
     """
@@ -42,8 +44,8 @@ class AioSerf(object):
         async with serf_client(**args) as client:
             pass  # work with 'client'
     """
-    def __init__(self, tg, host='localhost', port=7373, rpc_auth=None,
-            codec=None):
+
+    def __init__(self, tg, host='localhost', port=7373, rpc_auth=None, codec=None):
         self.tg = tg
         self.host = host
         self.port = port
@@ -145,8 +147,7 @@ class AioSerf(object):
         res = self._conn.stream('stream', {'Type': event_types})
         return SerfStream(self, res)
 
-    def query(self, name, payload=None, *, nodes=None, tags=None,
-            request_ack=False, timeout=0):
+    def query(self, name, payload=None, *, nodes=None, tags=None, request_ack=False, timeout=0):
         """
         Send a query.
 
@@ -216,7 +217,6 @@ class AioSerf(object):
             payload = self.codec.encode(payload)
         return self._conn.call("respond", {'ID': seq, 'Payload': payload}, expect_body=False)
 
-
     def event(self, name, payload=None, coalesce=True):
         """
         Send a user-specified event to the cluster. Can take an optional
@@ -231,9 +231,12 @@ class AioSerf(object):
         if payload is not None:
             payload = self.codec.encode(payload)
         return self._conn.call(
-            'event',
-            {'Name': name, 'Payload': payload, 'Coalesce': coalesce},
-            expect_body=False)
+            'event', {
+                'Name': name,
+                'Payload': payload,
+                'Coalesce': coalesce
+            }, expect_body=False
+        )
 
     def members(self, name=None, status=None, tags=None):
         """
@@ -274,7 +277,7 @@ class AioSerf(object):
         Tags that are not mentioned are not changed.
         """
         deleted = []
-        for k,v in list(tags.items()):
+        for k, v in list(tags.items()):
             if v is None:
                 del tags[k]
                 deleted.append(k)
@@ -299,9 +302,7 @@ class AioSerf(object):
         Args:
           ``name``: the name of the node that should leave.
         """
-        return self._conn.call(
-            'force-leave',
-            {"Node": name}, expect_body=False)
+        return self._conn.call('force-leave', {"Node": name}, expect_body=False)
 
     def install_key(self, key):
         """
@@ -310,9 +311,7 @@ class AioSerf(object):
         Args:
           ``key``: the new 16-byte key, base64-encoded.
         """
-        return self._conn.call(
-            'install-key',
-            {"Key": key}, expect_body=True)
+        return self._conn.call('install-key', {"Key": key}, expect_body=True)
 
     def use_key(self, key):
         """
@@ -321,9 +320,7 @@ class AioSerf(object):
         Args:
           ``key``: an existing 16-byte key, base64-encoded.
         """
-        return self._conn.call(
-            'use-key',
-            {"Key": key}, expect_body=True)
+        return self._conn.call('use-key', {"Key": key}, expect_body=True)
 
     def remove_key(self, key):
         """
@@ -332,9 +329,7 @@ class AioSerf(object):
         Args:
           ``key``: the obsolete 16-byte key, base64-encoded.
         """
-        return self._conn.call(
-            'remove-key',
-            {"Key": key}, expect_body=True)
+        return self._conn.call('remove-key', {"Key": key}, expect_body=True)
 
     def list_keys(self):
         """
@@ -356,9 +351,7 @@ class AioSerf(object):
         """
         if not isinstance(location, (list, tuple)):
             location = [location]
-        return self._conn.call(
-            'join',
-            {"Existing": location, "Replay": replay}, expect_body=2)
+        return self._conn.call('join', {"Existing": location, "Replay": replay}, expect_body=2)
 
     def get_coordinate(self, node):
         """
@@ -368,13 +361,10 @@ class AioSerf(object):
           ``node``: The node to request
 
         """
-        return self._conn.call(
-            ' get-coordinate',
-            {"Node": node}, expect_body=True)
+        return self._conn.call(' get-coordinate', {"Node": node}, expect_body=True)
 
     def stats(self):
         """
         Obtain operator debugging information about the running Serf agent.
         """
         return self._conn.call('stats')
-

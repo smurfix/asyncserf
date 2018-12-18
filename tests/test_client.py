@@ -10,14 +10,14 @@ class TestAioSerfCommands(object):
     """
     Common commands for the library
     """
-#    @pytest.mark.anyio
-#    async def test_rpc_auth(self):
-#        with mock.patch('aioserf.client.SerfConnection') as mock_serf_connection_class:
-#            mock_serf_connection = mock.MagicMock()
-#            mock_serf_connection_class.return_value = mock_serf_connection
-#            async with serf_client(rpc_auth='secret') as serf:
-#                assert serf._conn is not None
-#            mock_serf_connection.auth.assert_called_once_with('secret')
+    #    @pytest.mark.anyio
+    #    async def test_rpc_auth(self):
+    #        with mock.patch('aioserf.client.SerfConnection') as mock_serf_connection_class:
+    #            mock_serf_connection = mock.MagicMock()
+    #            mock_serf_connection_class.return_value = mock_serf_connection
+    #            async with serf_client(rpc_auth='secret') as serf:
+    #                assert serf._conn is not None
+    #            mock_serf_connection.auth.assert_called_once_with('secret')
 
     @pytest.mark.anyio
     async def test_has_a_default_host_and_port(self):

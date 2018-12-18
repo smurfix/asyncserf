@@ -61,4 +61,3 @@ class ValueEvent:
         """
         await self.event.wait()
         return self.value.unwrap()
-

@@ -23,8 +23,7 @@ except ImportError:
     PyTest = lambda x: x
 
 try:
-    long_description = open(os.path.join(os.path.dirname(__file__),
-                                         'README.rst')).read()
+    long_description = open(os.path.join(os.path.dirname(__file__), 'README.rst')).read()
 except:
     long_description = None
 

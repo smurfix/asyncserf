@@ -11,9 +11,11 @@ import sys
 
 import logging
 
+
 async def foo(client):
     while True:
-        await client._conn.call("stop",{"Stop":123}, expect_body=False)
+        await client._conn.call("stop", {"Stop": 123}, expect_body=False)
+
 
 async def main():
     async with serf_client() as client:
@@ -22,8 +24,9 @@ async def main():
             await client.spawn(foo, client)
             while True:
                 await anyio.sleep(1)
-                print(client._conn._seq-2**63, end=" \r")
+                print(client._conn._seq - 2**63, end=" \r")
                 sys.stdout.flush()
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.WARNING)

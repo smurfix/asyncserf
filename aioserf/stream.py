@@ -1,5 +1,6 @@
 # Streaming frontend
 
+
 class SerfStream:
     """
     An object of this class is returned by :meth:`aioserf.AioSerf.stream`.
@@ -43,7 +44,7 @@ class SerfStream:
             raise
         else:
             res = SerfEvent(self.client)
-            for k,v in r.body.items():
+            for k, v in r.body.items():
                 k = k.decode('UTF-8')
                 if v is not None:
                     if k == "Payload":
@@ -56,6 +57,7 @@ class SerfStream:
     @property
     def head(self):
         return self._ctx.head
+
     @property
     def body(self):
         return self._ctx.body
@@ -85,6 +87,7 @@ class SerfQuery(SerfStream):
     when its timeout expires.
 
     """
+
     def __init__(self, client, stream):
         super().__init__(client, stream)
         self.stream.send_stop = False
@@ -135,5 +138,9 @@ class SerfEvent:
         await self.client.respond(self.id, payload)
 
     def __repr__(self):
-        return "<%s: %s>" % (self.__class__.__name__, ",".join("%s:%s" %(str(k),repr(v)) for k,v in vars(self).items() if not k.startswith('_')))
-
+        return "<%s: %s>" % (
+            self.__class__.__name__, ",".join(
+                "%s:%s" % (str(k), repr(v)) for k, v in vars(self).items()
+                if not k.startswith('_')
+            )
+        )

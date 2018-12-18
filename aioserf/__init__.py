@@ -9,4 +9,3 @@ from .codec import *
 
 __all__ = ['AioSerf', 'serf_client', 'EnvironmentConfig', 'SerfError', 'SerfConnectionError']
 __all__ += codec.__all__
-

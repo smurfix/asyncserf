@@ -5,7 +5,8 @@ import re
 from contextlib import closing
 from aioserf import serf_client
 
-NS=1000*1000*1000 # nanoseconds per second
+NS = 1000 * 1000 * 1000  # nanoseconds per second
+
 
 class TestAioSerfStream(object):
     @pytest.mark.anyio
@@ -29,12 +30,10 @@ class TestAioSerfStream(object):
                     if len(all_responses) == 2:
                         break
 
-            sorted_responses = sorted([
-                [
-                    res.name,
-                    res.payload,
-                ] for res in all_responses
-            ])
+            sorted_responses = sorted([[
+                res.name,
+                res.payload,
+            ] for res in all_responses])
             for i, res in enumerate(sorted_responses):
                 expected = expected_data[i]
                 assert res[0] == expected[0]
@@ -52,10 +51,9 @@ class TestAioSerfQuery(object):
     async def ask_query(self, serf, ev):
         acks = 0
         reps = 0
-        async with serf.query("foo", payload="baz", request_ack=True,
-                timeout=1*NS) as q:
+        async with serf.query("foo", payload="baz", request_ack=True, timeout=1 * NS) as q:
             async for r in q:
-                if not hasattr(r,'type'):
+                if not hasattr(r, 'type'):
                     break
                 if r.type == "ack":
                     acks += 1
@@ -81,7 +79,6 @@ class TestAioSerfQuery(object):
                     await ev2.wait()
 
 
-
 class TestAioSerfMonitor(object):
     @pytest.mark.anyio
     async def test_sending_a_simple_event(self):
@@ -99,4 +96,3 @@ class TestAioSerfMonitor(object):
                     n += 1
                     if n >= 3:
                         break
-

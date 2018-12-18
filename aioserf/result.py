@@ -1,5 +1,6 @@
 import msgpack
 
+
 class SerfResult(object):
     """
     Result object for responses from a Serf agent.
@@ -24,4 +25,3 @@ class SerfResult(object):
             % {'class': self.__class__.__name__,
                'h': self.head,
                'b': self.body}
-

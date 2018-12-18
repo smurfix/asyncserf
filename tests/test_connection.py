@@ -14,12 +14,14 @@ def extract_addr(rpc, ip_address, address_family=socket.AF_INET6):
     r = rpc._decode_addr_key({b'Addr': packed_ip_format})
     return r[b'Addr'].decode('utf-8')
 
+
 @asynccontextmanager
 async def rpc_connect(**kw):
     async with anyio.create_task_group() as tg:
         conn = connection.SerfConnection(tg, **kw)
         async with conn._connected():
             yield conn
+
 
 class TestSerfConnection(object):
     """
@@ -47,9 +49,7 @@ class TestSerfConnection(object):
 
     @pytest.mark.anyio
     async def test_connection_to_bad_socket_throws_exception(self):
-        with pytest.raises(
-                    connection.SerfConnectionError
-                ) as exceptionInfo:
+        with pytest.raises(connection.SerfConnectionError) as exceptionInfo:
             async with rpc_connect(port=40000) as rpc:
                 pass
         assert isinstance(exceptionInfo.value.__cause__, ConnectionRefusedError)
@@ -72,9 +72,14 @@ class TestSerfConnection(object):
             assert 'counter=0' in str(rpc)
             await rpc.handshake()
             assert 'counter=1' in str(rpc)
-            await rpc.call('event',
-                    {"Name": "foo", "Payload": "test payload", "Coalesce": True},
-                    expect_body=False)
+            await rpc.call(
+                'event', {
+                    "Name": "foo",
+                    "Payload": "test payload",
+                    "Coalesce": True
+                },
+                expect_body=False
+            )
             assert 'counter=2' in str(rpc)
 
     @pytest.mark.anyio
@@ -107,10 +112,14 @@ class TestSerfConnection(object):
                 # Incorrectly set expect_body to True for an event RPC,
                 # which will wait around for a body it'll never get,
                 # which should cause a SerfTimeout exception.
-                rpc.call('event',
-                        {"Name": "foo", "Payload": "test payload",
-                        "Coalesce": True},
-                        expect_body=True)
+                rpc.call(
+                    'event', {
+                        "Name": "foo",
+                        "Payload": "test payload",
+                        "Coalesce": True
+                    },
+                    expect_body=True
+                )
 
     @pytest.mark.anyio
     @pytest.mark.xfail
