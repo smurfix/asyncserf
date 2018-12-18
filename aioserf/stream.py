@@ -3,6 +3,8 @@
 class SerfStream:
     """
     An object of this class is returned by :meth:`aioserf.AioSerf.stream`.
+    It represents the message stream that's returned by a query which
+    returns more than one reply.
 
     All you should do with this object is iterate over it with an async
     context::
@@ -12,6 +14,8 @@ class SerfStream:
             async for reply in stream:
                 assert isinstance(reply, SerfEvent)
                 pass
+
+    Note that the actual query is not started until you enter the context.
     """
     _it = None
 
@@ -74,17 +78,29 @@ class SerfQuery(SerfStream):
             async for reply in query:
                 assert isinstance(reply, SerfEvent)
                 pass
+
+    This is a derivative class of :class:`SerfStream`.
+    
+    Cancelling a ``SerfQuery`` has no effect – the query only terminates
+    when its timeout expires.
+
     """
     def __init__(self, client, stream):
         super().__init__(client, stream)
         self.stream.send_stop = False
 
     async def __anext__(self):
+        """
+        Auto-close the iterator when Serf says a query is done.
+        """
         res = await super().__anext__()
         if res.type == "done":
             try:
                 del self.client._conn._handlers[self.stream.seq]
             except AttributeError:
+                # either the connection or the handlers is `None`, thus
+                # the connectionis closed, which we don't care about.
+                # No, we don't catch KeyError here. That should not happen.
                 pass
             raise StopAsyncIteration
         return res
@@ -93,6 +109,12 @@ class SerfQuery(SerfStream):
 class SerfEvent:
     """
     Encapsulates one event returned by a :class:`SerfStream` or :class:`SerfQuery`.
+
+    The event's data are represented by (lower-cased) attributes of this object.
+
+    The payload (if any) will have been decoded by the client's codec.
+    Non-decodable payloads trigger a fatal error. To avoid that, use the
+    :class:`aioserf.codec.NoopCodec` codec and decode manually.
     """
     id = None
     payload = None
@@ -106,8 +128,7 @@ class SerfEvent:
         iterating over a :class:`SerfStream`.
 
         Args:
-          ``payload``: the payload, as accepted by the client codec's
-                       ``encode`` method.
+          ``payload``: the payload, as accepted by the client codec's encoder.
         """
         if self.id is None:
             raise RuntimeError("This is not in reply to a query")

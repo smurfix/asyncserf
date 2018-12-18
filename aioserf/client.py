@@ -11,20 +11,36 @@ from async_generator import asynccontextmanager
 
 @asynccontextmanager
 async def serf_client(**kw):
+    """
+    Async context manager for connecting to Serf.
 
+    Arguments: see :class:`AioSerf`, except for the task group ``tg``
+    which ``serf_client`` creates and manages for you.
+
+    This is an async context manager.
+    """
     async with anyio.create_task_group() as tg:
         client = AioSerf(tg, **kw)
         async with client._connected():
             yield client
+            await tg.cancel_scope.cancel()
 
 class AioSerf(object):
     """
     The main adapter.
 
     Args:
-      ``tg``: the task group to use. Typically passed in by
-              :func:`serf_client`.
+      ``tg``: the task group to use.
+      ``host``: the host to connect to. Defaults to "localhost".
+      ``port``: the TCP port to connect to. Defaults to 7373 (serf).
+      ``rpc_auth``: authorizatioon information.
+      ``codec``: Codec for the payload. Defaults to no-op,
+                 i.e. the payload must consist of bytes.
 
+    Do not instantiate this object directly; insread, use::
+
+        async with serf_client(**args) as client:
+            pass  # work with 'client'
     """
     def __init__(self, tg, host='localhost', port=7373, rpc_auth=None,
             codec=None):
@@ -38,6 +54,11 @@ class AioSerf(object):
 
     @asynccontextmanager
     async def _connected(self):
+        """
+        Helper to manage the underlying connection.
+        
+        This is an async context manager.
+        """
         self._conn = SerfConnection(self.tg, host=self.host, port=self.port)
         try:
             async with self._conn._connected():
@@ -51,6 +72,12 @@ class AioSerf(object):
             self._conn = None
 
     async def _spawn(self, val, proc, args, kw):
+        """
+        Helper for starting a task.
+
+        This accepts a :class:`ValueEvent`, to pass the task's cancel scope
+        back to the caller.
+        """
         async with anyio.open_cancel_scope() as scope:
             await val.set(scope)
             await proc(*args, **kw)
@@ -121,7 +148,36 @@ class AioSerf(object):
     def query(self, name, payload=None, *, nodes=None, tags=None,
             request_ack=False, timeout=0):
         """
-        Send a query, expect a stream of replies.
+        Send a query.
+
+        Args:
+          ``name``: The query name. Mandatory.
+          ``payload``: Your payload. Will be passed through this client's
+                       codec.
+          ``nodes``: The list of nodes to pass this query to. Default: no
+                     restriction
+          ``tags``: A dict of tags used to filter nodes. Values are regexps
+                    which a node's corresponding tag value must match.
+          ``request_ack``: A flag whether the query result shall include
+                           messages that a Serf node matches the request.
+                           The default is ``False``.
+          ``timeout``: Time (in seconds) after which the query will be
+                       concluded.
+        Returns:
+          a :class:`aioserf.stream.SerfQuery` object.
+
+        Note that the query will not be started until you enter its
+        context. You should then iterate over the results::
+
+            async with client.query("example") as stream:
+                async for response in stream:
+                    if response.type == "ack":
+                        print("Response arrived at %s" % (response.from,))
+                    elif response.type == "response":
+                        print("Node %s answered %s" %
+                                (response.from,
+                                 repr(response.payload)))
+
         """
         params = {'Name': name, 'RequestAck': request_ack}
         if payload is not None:
@@ -187,7 +243,8 @@ class AioSerf(object):
         Args:
           ``name``: a string with a regex that matches on node names.
           ``status``: a string with a regex matching on node status.
-          ``tags``: a dict of tag names to regex values.
+          ``tags``: a dict of tags used to filter nodes. Values are regexps
+                    which a node's corresponding tag value must match.
 
         All arguments must match for a node to be returned.
         """
@@ -210,10 +267,11 @@ class AioSerf(object):
     def tags(self, **tags):
         """Set this node's tags.
 
-        Tags that are not mentioned are not changed. You can
-        delete a tag by passing ``None`` as its value.
+        Keyword arguments are used to name tags to be set or deleted.
 
-        All keyword arguments are used as tags to be set or deleted.
+        You can delete a tag by passing ``None`` as its value.
+
+        Tags that are not mentioned are not changed.
         """
         deleted = []
         for k,v in list(tags.items()):
@@ -227,9 +285,9 @@ class AioSerf(object):
 
     def leave(name):
         """
-        Terminate this Serf instance.
+        Terminate the Serf instance you're connected to.
 
-        This will ultmately shut down the connection, probably with an
+        This will ultimately shut down the connection, probably with an
         error.
         """
         return self._conn.call('leave', expect_body=False)
@@ -287,7 +345,8 @@ class AioSerf(object):
 
     def join(self, location, replay=False):
         """
-        Ask Serf to join a cluster, by providing a list of ip:port locations.
+        Ask Serf to join a cluster, by providing a list of possible
+        ip:port locations.
 
         Args:
           ``location``: A list of addresses.

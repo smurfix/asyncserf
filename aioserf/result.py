@@ -2,13 +2,20 @@ import msgpack
 
 class SerfResult(object):
     """
-    Bounded result object for responses from a Serf agent.
+    Result object for responses from a Serf agent.
     """
 
     def __init__(self, head=None, body=None):
         self.head, self.body = head, body
 
     def __iter__(self):
+        """
+        Iterator.
+
+        Used for assignment, i.e.::
+
+            head, body = result
+        """
         yield self.head
         yield self.body
 

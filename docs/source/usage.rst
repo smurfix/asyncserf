@@ -180,3 +180,5 @@ Helper classes
 .. autoclass:: aioserf.stream.SerfEvent
     :members:
 
+.. autoclass:: aioserf.util.ValueEvent
+

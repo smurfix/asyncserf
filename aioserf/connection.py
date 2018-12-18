@@ -16,7 +16,15 @@ logger = getLogger(__name__)
 
 _conn_id = 0
 
-class StreamReply:
+class _StreamReply:
+    """
+    This class represents a multi-message reply.
+
+    Actually, it also represents the query itself, which is not started
+    until you enter the stream's context.
+
+    This is an internal class. See :meth:`AioSerf.stream` for details.
+    """
     _running = False
     send_stop = True
 
@@ -69,6 +77,9 @@ class StreamReply:
 class SerfConnection(object):
     """
     Manages RPC communication to and from a Serf agent.
+
+    This is an internal class; see :class:`aioserf.AioSerf` for methods
+    you're supposed to call. ;-)
     """
 
     # Read from the RPC socket in blocks of this many bytes.
@@ -104,10 +115,10 @@ class SerfConnection(object):
         Sends the provided command to Serf for evaluation, with
         any parameters as the message body. Expect a streamed reply.
 
-        Returns a StreamReply object which affords an async context manager
-        plus async iterator, which will return replies.
+        Returns a ``_StreamReply`` object which affords an async context
+        manager plus async iterator, which will return replies.
         """
-        return StreamReply(self, command, params, self._counter, expect_body)
+        return _StreamReply(self, command, params, self._counter, expect_body)
 
 
     async def _call(self, command, params=None, expect_body=True, *, _reply=None):
@@ -115,9 +126,13 @@ class SerfConnection(object):
         Sends the provided command to Serf for evaluation, with
         any parameters as the message body.
 
-        Returns the reply, if any.
+        Returns the reply object. If the connection is being torn down and
+        no reply is explected, return ``None``.
         """
         class SingleReply(ValueEvent):
+            """
+            A helper class, used to process a single reply.
+            """
             def __init__(slf, seq, expect_body):
                 super().__init__()
                 slf.seq = seq
@@ -157,13 +172,22 @@ class SerfConnection(object):
         return _reply
 
     async def call(self, command, params=None, expect_body=True):
+        """
+        Fire a single-reply command, wait for the reply (and return it).
+        """
+
         res = await self._call(command, params, expect_body=expect_body)
         if res is None:
             return res
         return await res.get()
 
     async def _handle_msg(self, msg):
-        """Handle an incoming message"""
+        """Handle an incoming message.
+
+        Return True if the message is incomplete, i.e. the reader should
+        wait for a body, attach it to the message, and then call this
+        method again.
+        """
         if self._handlers is None:
             logger.warn("Message without handlers:%s", msg)
             return
@@ -192,7 +216,10 @@ class SerfConnection(object):
 
 
     async def _reader(self, scope):
-        """Main loop for reading"""
+        """Main loop for reading
+        
+        TODO: add a timeout for receiving message bodies.
+        """
         unpacker = msgpack.Unpacker(object_hook=self._decode_addr_key)
         cur_msg = None
 
@@ -243,6 +270,10 @@ class SerfConnection(object):
 
     @asynccontextmanager
     async def _connected(self):
+        """
+        This async context manager handles the actual TCP connection to
+        the Serf process.
+        """
         reader = ValueEvent()
         try:
             async with await anyio.connect_tcp(self.host, self.port) as sock:
@@ -263,7 +294,7 @@ class SerfConnection(object):
     @property
     def _counter(self):
         """
-        Returns the current value of the iterator and increments it.
+        Returns the current value of our message sequence counter and increments it.
         """
         current = self._seq
         self._seq += 1
