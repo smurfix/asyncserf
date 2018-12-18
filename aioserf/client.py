@@ -136,12 +136,14 @@ class AioSerf(object):
         res = self._conn.stream('query', params)
         return SerfQuery(self, res)
 
-    def monitor(self, log_level='DEBUG'):
+    def monitor(self, log_level='info'):
         """
-        Ask the server to sream log entries.
+        Ask the server to stream (some of) its log entries to you.
 
         :Args:
           ``log_level``: The debug level.
+                         Possible values are "trace", "debug", "info", "warn",
+                         and "err". The default is "info".
         """
         res = self._conn.stream('monitor', {'LogLevel': log_level})
         return SerfStream(self, res)
