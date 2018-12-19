@@ -1,3 +1,9 @@
+aioserf (0.3.1-1) unstable; urgency=medium
+
+  * Various fixes
+
+ -- Matthias Urlichs <matthias@urlichs.de>  Wed, 19 Dec 2018 10:31:12 +0100
+
 aioserf (0.2.0-1) unstable; urgency=medium
 
   * package v0.2
