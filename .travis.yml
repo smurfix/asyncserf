@@ -1,22 +1,41 @@
-sudo: false
 language: python
 python:
-  - "pypy"
-  - "3.6"
-  - "3.5"
-before_install:
-  - wget https://releases.hashicorp.com/serf/0.7.0/serf_0.7.0_linux_amd64.zip
-  - unzip serf_0.7.0_linux_amd64.zip
-  - ./serf agent &
-  - sleep 1 ; ./serf tags -set foo=bar
-install:
-  - pip install 'coverage<4.0.0' coveralls pep8
-  - python setup.py develop
+  - 3.6
+  - 3.6-dev
+sudo: false
+dist: trusty
+
+matrix:
+  include:
+    # As of 2018-07-05, Travis's 3.7 and 3.8 builds only work if you
+    # use dist: xenial AND sudo: required
+    - python: 3.6
+      sudo: required
+    - python: 3.7
+      dist: xenial
+      sudo: required
+    - python: 3.7-dev
+      dist: xenial
+      sudo: required
+    - python: 3.8-dev
+      dist: xenial
+      sudo: required
+    # - os: linux
+    #   language: generic
+    #   env: USE_PYPY_RELEASE_VERSION=5.9-beta
+    # Uncomment if you want to test on pypy nightly
+    # - os: linux
+    #   language: generic
+    #   env: USE_PYPY_NIGHTLY=1
+    - os: osx
+      language: generic
+      env: MACPYTHON=3.6.3
+    - python: 3.6
+      env: CHECK_DOCS=1
+    - python: 3.6
+      env: CHECK_FORMATTING=1
+  allow_failures:
+    - python: 3.8-dev
+
 script:
-  - coverage run --source=aioserf setup.py test
-  - coverage report -m
-  - pep8 --repeat --show-source aioserf tests
-after_success:
-  - coveralls
-notifications:
-  email: false
+  - ci/travis.sh
