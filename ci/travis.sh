@@ -91,7 +91,7 @@ else
     pip install -Ur ci/test-requirements.txt
 
     wget https://releases.hashicorp.com/serf/0.8.1/serf_0.8.1_${OS}_amd64.zip
-    unzip serf_0.8.1_linux_amd64.zip
+    unzip serf_0.8.1_${OS}_amd64.zip
     ./serf agent &
     sleep 2
     ./serf tags -set foo=bar
