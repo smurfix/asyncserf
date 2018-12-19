@@ -45,7 +45,7 @@ setup(
     keywords=['Serf', 'orchestration', 'service discovery', 'anyio'],
     license='MIT',
     packages=['aioserf'],
-    install_requires=['msgpack >= 0.5.0', 'anyio', 'outcome', 'async_generator', 'attrs >= 18.1'],
+    install_requires=['msgpack >= 0.5.0', 'anyio == 1.0.0b1', 'outcome', 'async_generator', 'attrs >= 18.1'],
     tests_require=test_requires,
     cmdclass={'test': PyTest},
 )
