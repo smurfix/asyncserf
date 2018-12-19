@@ -2,7 +2,7 @@
 
 set -ex
 
-YAPF_VERSION=0.20.0
+YAPF_VERSION=0.22.0
 
 if [ "$TRAVIS_OS_NAME" = "osx" ]; then
     curl -Lo macpython.pkg https://www.python.org/ftp/python/${MACPYTHON}/python-${MACPYTHON}-macosx10.6.pkg
