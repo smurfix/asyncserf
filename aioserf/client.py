@@ -8,9 +8,11 @@ from .stream import SerfStream, SerfQuery
 from .codec import NoopCodec
 from .util import ValueEvent
 from async_generator import asynccontextmanager
+from async_generator import async_generator, yield_
 
 
 @asynccontextmanager
+@async_generator
 async def serf_client(**kw):
     """
     Async context manager for connecting to Serf.
@@ -23,7 +25,7 @@ async def serf_client(**kw):
     async with anyio.create_task_group() as tg:
         client = AioSerf(tg, **kw)
         async with client._connected():
-            yield client
+            await yield_(client)
             await tg.cancel_scope.cancel()
 
 
@@ -55,6 +57,7 @@ class AioSerf(object):
         self.codec = codec
 
     @asynccontextmanager
+    @async_generator
     async def _connected(self):
         """
         Helper to manage the underlying connection.
@@ -67,7 +70,7 @@ class AioSerf(object):
                 await self._conn.handshake()
                 if self.rpc_auth:
                     await self._conn.auth(self.rpc_auth)
-                yield self
+                await yield_(self)
         finally:
             if self._conn is not None:
                 await self._conn.call("leave")

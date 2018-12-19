@@ -2,6 +2,7 @@ import socket
 import msgpack
 import resource
 from async_generator import asynccontextmanager
+from async_generator import async_generator, yield_
 import anyio
 from anyio.exceptions import ClosedResourceError
 import outcome
@@ -281,6 +282,7 @@ class SerfConnection(object):
         return await self.call('auth', {"AuthKey": auth_key}, expect_body=False)
 
     @asynccontextmanager
+    @async_generator
     async def _connected(self):
         """
         This async context manager handles the actual TCP connection to
@@ -292,7 +294,7 @@ class SerfConnection(object):
                 self._socket = sock
                 await self.tg.spawn(self._reader, reader)
                 reader = await reader.get()
-                yield self
+                await yield_(self)
         except socket.error as e:
             raise SerfConnectionError(self.host, self.port) from e
         finally:
