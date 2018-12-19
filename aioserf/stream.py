@@ -3,6 +3,7 @@
 import logging
 logger = logging.getLogger(__name__)
 
+
 class SerfStream:
     """
     An object of this class is returned by :meth:`aioserf.AioSerf.stream`.
