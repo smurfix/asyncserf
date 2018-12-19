@@ -135,7 +135,7 @@ class TestAioSerfCommands(object):
             members = await serf.members()
             ip_addr = members.body[b'Members'][0][b'Addr']
 
-            assert re.match(b'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', ip_addr) or b':' in ip_addr
+            assert re.match(rb'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', ip_addr) or b':' in ip_addr
 
     @pytest.mark.anyio
     async def test_stats_is_well_formed(self):
