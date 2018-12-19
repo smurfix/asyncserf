@@ -94,10 +94,6 @@ else
     sleep 2
     ./serf tags -set foo=bar
 
-    sudo apt-get install serf
-    sudo systemctl start serf
-    sudo serf tags --set foo=bar
-
     mkdir empty
     cd empty
 
