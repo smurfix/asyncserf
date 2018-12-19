@@ -5,8 +5,7 @@ from aioserf import serf_client, UTF8Codec
 
 
 class TestAioSerfStream(object):
-    @pytest.mark.anyio
-    async def test_sending_a_simple_event(self):
+    async def send_data(self):
         async with serf_client() as serf:
             assert (await serf.event('foo', 'bar')).head == {b'Error': b'', b'Seq': 1}
             assert (await serf.event('bill', 'gates')).head == {b'Error': b'', b'Seq': 2}
@@ -15,6 +14,7 @@ class TestAioSerfStream(object):
     async def test_stream(self):
         async with serf_client(codec=UTF8Codec()) as serf:
             async with serf.stream() as response:
+                await self.send_data()
                 assert response.head == {b'Error': b'', b'Seq': 1}
                 expected_data = sorted([
                     ['bill', 'gates'],
