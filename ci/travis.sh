@@ -87,6 +87,13 @@ if [ "$CHECK_DOCS" = "1" ]; then
 else
     # Actual tests
     pip install -Ur ci/test-requirements.txt
+
+    wget https://releases.hashicorp.com/serf/0.8.1/serf_0.8.1_linux_amd64.zip
+    unzip serf_0.8.1_linux_amd64.zip
+    ./serf agent &
+    sleep 2
+    ./serf tags -set foo=bar
+
     sudo apt-get install serf
     sudo systemctl start serf
     sudo serf tags --set foo=bar
