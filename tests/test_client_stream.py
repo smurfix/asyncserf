@@ -1,9 +1,7 @@
 import anyio
 import pytest
 
-from aioserf import serf_client
-
-NS = 1000 * 1000 * 1000  # nanoseconds per second
+from aioserf import serf_client, UTF8Codec
 
 
 class TestAioSerfStream(object):
@@ -15,7 +13,7 @@ class TestAioSerfStream(object):
 
     @pytest.mark.anyio
     async def test_stream(self):
-        async with serf_client() as serf:
+        async with serf_client(codec=UTF8Codec()) as serf:
             async with serf.stream() as response:
                 assert response.head == {b'Error': b'', b'Seq': 1}
                 expected_data = sorted([
@@ -49,7 +47,7 @@ class TestAioSerfQuery(object):
     async def ask_query(self, serf, ev):
         acks = 0
         reps = 0
-        async with serf.query("foo", payload="baz", request_ack=True, timeout=1 * NS) as q:
+        async with serf.query("foo", payload="baz", request_ack=True, timeout=1) as q:
             async for r in q:
                 if not hasattr(r, 'type'):
                     break
@@ -67,8 +65,8 @@ class TestAioSerfQuery(object):
     @pytest.mark.anyio
     async def test_query(self):
         async with anyio.create_task_group() as tg:
-            async with serf_client() as serf1:
-                async with serf_client() as serf2:
+            async with serf_client(codec=UTF8Codec()) as serf1:
+                async with serf_client(codec=UTF8Codec()) as serf2:
                     ev1 = anyio.create_event()
                     ev2 = anyio.create_event()
                     await tg.spawn(self.answer_query, serf2, ev1)
