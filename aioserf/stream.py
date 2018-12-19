@@ -1,5 +1,7 @@
 # Streaming frontend
 
+import logging
+logger = logging.getLogger(__name__)
 
 class SerfStream:
     """
@@ -44,14 +46,7 @@ class SerfStream:
             raise
         else:
             res = SerfEvent(self.client)
-            for k, v in r.body.items():
-                k = k.decode('UTF-8')
-                if v is not None:
-                    if k == "Payload":
-                        v = self.client.codec.decode(v)
-                    elif isinstance(v, bytes):
-                        v = v.decode("utf-8")
-                setattr(res, k.lower(), v)
+            res._set(r.body, self.client.codec)
             return res
 
     @property
@@ -136,6 +131,18 @@ class SerfEvent:
         if self.id is None:
             raise RuntimeError("This is not in reply to a query")
         await self.client.respond(self.id, payload)
+
+    def _set(self, body, codec):
+        logger.debug("Set %s with %s", self, body)
+        for k, v in body.items():
+            k = k.decode('UTF-8')
+            if v is not None:
+                if k == "Payload":
+                    v = codec.decode(v)
+                elif isinstance(v, bytes):
+                    v = v.decode("utf-8")
+            setattr(self, k.lower(), v)
+        logger.debug("Set result %s", self)
 
     def __repr__(self):
         return "<%s: %s>" % (
