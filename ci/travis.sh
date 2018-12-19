@@ -3,8 +3,10 @@
 set -ex
 
 YAPF_VERSION=0.22.0
+OS=linux
 
 if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+    OS=darwin
     curl -Lo macpython.pkg https://www.python.org/ftp/python/${MACPYTHON}/python-${MACPYTHON}-macosx10.6.pkg
     sudo installer -pkg macpython.pkg -target /
     ls /Library/Frameworks/Python.framework/Versions/*/bin/
@@ -88,7 +90,7 @@ else
     # Actual tests
     pip install -Ur ci/test-requirements.txt
 
-    wget https://releases.hashicorp.com/serf/0.8.1/serf_0.8.1_linux_amd64.zip
+    wget https://releases.hashicorp.com/serf/0.8.1/serf_0.8.1_${OS}_amd64.zip
     unzip serf_0.8.1_linux_amd64.zip
     ./serf agent &
     sleep 2
