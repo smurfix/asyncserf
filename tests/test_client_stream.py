@@ -13,7 +13,7 @@ class TestAioSerfStream(object):
     @pytest.mark.anyio
     async def test_stream(self):
         async with serf_client(codec=UTF8Codec()) as serf:
-            async with serf.stream() as response:
+            async with serf.stream("user") as response:
                 await self.send_data()
                 assert response.head == {b'Error': b'', b'Seq': 1}
                 expected_data = sorted([
