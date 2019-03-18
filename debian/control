@@ -8,26 +8,11 @@ Homepage: https://github.com/smurfix/aioserf
 
 Package: python3-aioserf
 Architecture: all
-Depends: ${misc:Depends}, ${python3:Depends}
+Depends: ${misc:Depends}, ${python3:Depends},
+  python3-anyio,
 Description: Python client for the Serf orchestration tool
- aioserf
- =======
- .
  AioSerf is an async Python interface to Serf, the decentralised solution
  for service discovery and orchestration.
  .
- It uses `anyio <https://github.com/agronholm/anyio>`, thus should work with
- ``asyncio``, ``trio``, and ``curio``. Hopefully.
- .
- .. image:: https://secure.travis-ci.org/smurfix/aioserf.png?branch=master
-     :alt: Travis-CI badge
-     :target: http://travis-ci.org/smurfix/aioserf
- .. image:: https://gemnasium.com/smurfix/aioserf.png
-     :alt: Gemnasium badge
-     :target: https://gemnasium.com/smurfix/aioserf
- .. image:: https://badge.fury.io/py/aioserf.svg
-     :alt: PyPI latest version badge
-     :target: https://pypi.python.org/pypi/aioserf
- .. image:: https://coveralls.io/repos/smurfix/aioserf/badge.png?branch=master
-     :alt: Code coverage badge
+ It uses anyio, thus should work with asyncio, trio, and curio. Hopefully.
 

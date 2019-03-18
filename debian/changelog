@@ -1,3 +1,9 @@
+aioserf (0.3.3-2) unstable; urgency=medium
+
+  * Depend on anyio
+
+ -- Matthias Urlichs <matthias@urlichs.de>  Mon, 18 Mar 2019 12:17:30 +0100
+
 aioserf (0.3.3-1) unstable; urgency=medium
 
   * Minor fixes
