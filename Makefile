@@ -46,7 +46,6 @@ tag:
 
 pypi:	tag
 	python3 setup.py sdist upload
-	## version depends on tag, so re-tagging doesn't make sense
 
 upload: pypi
 	git push --tags
