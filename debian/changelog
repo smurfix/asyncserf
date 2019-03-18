@@ -1,3 +1,9 @@
+aioserf (0.3.3-1) unstable; urgency=medium
+
+  * Minor fixes
+
+ -- Matthias Urlichs <matthias@urlichs.de>  Mon, 18 Mar 2019 12:15:51 +0100
+
 aioserf (0.3.2-1) unstable; urgency=medium
 
   * Typo

@@ -2,8 +2,6 @@
 import os
 import sys
 
-exec(open("aioserf/_version.py", encoding="utf-8").read())
-
 try:
     from setuptools import setup
     from setuptools.command.test import test as TestCommand
@@ -34,7 +32,13 @@ test_requires = [
 
 setup(
     name='aioserf',
-    version=__version__,  # noqa: F821
+    use_scm_version={
+        "version_scheme": "guess-next-dev",
+        "local_scheme": "dirty-tag"
+    },
+    setup_requires=[
+        "setuptools_scm",
+    ],
     description='Python client for the Serf orchestration tool',
     long_description=long_description,
     url='https://github.com/smurfix/aioserf',
