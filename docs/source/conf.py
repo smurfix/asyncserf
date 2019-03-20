@@ -71,7 +71,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'aioserf'
+project = 'trio-serf'
 copyright = '© 2018, Matthias Urlichs'
 author = 'Matthias Urlichs'
 
@@ -80,8 +80,8 @@ author = 'Matthias Urlichs'
 # built documents.
 #
 # The short X.Y version.
-import aioserf
-version = aioserf.__version__
+import trio_serf
+version = trio_serf.__version__
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -142,7 +142,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'aioserf-doc'
+htmlhelp_basename = 'trio-serf-doc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -168,14 +168,14 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'aioserf.tex', 'AioSerf Documentation', author, 'manual'),
+    (master_doc, 'trio-serf.tex', 'Trio-Serf Documentation', author, 'manual'),
 ]
 
 # -- Options for manual page output ---------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, 'aioserf', 'AioSerf Documentation', [author], 1)]
+man_pages = [(master_doc, 'trio_serf', 'Trio-Serf Documentation', [author], 1)]
 
 # -- Options for Texinfo output -------------------------------------------
 
@@ -184,7 +184,7 @@ man_pages = [(master_doc, 'aioserf', 'AioSerf Documentation', [author], 1)]
 #  dir menu entry, description, category)
 texinfo_documents = [
     (
-        master_doc, 'aioserf', 'AioSerf Documentation', author, 'aioserf',
-        'An async RPC interface (asyncio/trio) to Serf', 'Miscellaneous'
+        master_doc, 'trio_serf', 'Trio-Serf Documentation', author, 'trio-serf',
+        'An async RPC interface (using trio) to Serf', 'Miscellaneous'
     ),
 ]

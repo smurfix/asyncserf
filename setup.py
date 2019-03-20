@@ -31,7 +31,7 @@ test_requires = [
 ]
 
 setup(
-    name='aioserf',
+    name='trio_serf',
     use_scm_version={
         "version_scheme": "guess-next-dev",
         "local_scheme": "dirty-tag"
@@ -41,14 +41,14 @@ setup(
     ],
     description='Python client for the Serf orchestration tool',
     long_description=long_description,
-    url='https://github.com/smurfix/aioserf',
+    url='https://github.com/smurfix/trio-serf',
     author='Matthias Urlichs',
     author_email='matthias@urlichs.de',
     maintainer='Matthias Urlichs',
     maintainer_email='matthias@urlichs.de',
     keywords=['Serf', 'orchestration', 'service discovery', 'trio'],
     license='MIT',
-    packages=['aioserf'],
+    packages=['trio-serf'],
     install_requires=['msgpack >= 0.5.0', 'trio >= 0.11', 'outcome', 'async_generator', 'attrs >= 18.1'],
     tests_require=test_requires,
     cmdclass={'test': PyTest},

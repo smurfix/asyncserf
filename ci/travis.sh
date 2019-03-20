@@ -57,7 +57,7 @@ pip install -U pip setuptools wheel
 
 if [ "$CHECK_FORMATTING" = "1" ]; then
     pip install yapf==${YAPF_VERSION}
-    if ! yapf -rpd setup.py aioserf; then
+    if ! yapf -rpd setup.py trio_serf; then
         cat <<EOF
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -65,7 +65,7 @@ if [ "$CHECK_FORMATTING" = "1" ]; then
 Formatting problems were found (listed above). To fix them, run
 
    pip install yapf==${YAPF_VERSION}
-   yapf -rpi setup.py aioserf
+   yapf -rpi setup.py trio_serf
 
 in your local checkout.
 
@@ -99,7 +99,7 @@ else
     mkdir empty
     cd empty
 
-    pytest -W error -ra -v --cov=aioserf --cov-config=../.coveragerc --verbose ../tests
+    pytest -W error -ra -v --cov=trio_serf --cov-config=../.coveragerc --verbose ../tests
 
     bash <(curl -s https://codecov.io/bash)
 fi

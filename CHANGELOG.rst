@@ -1,8 +1,8 @@
 Changelog
 =========
 
-aioserf
-+++++++
+trio-serf
++++++++++
 
 0.1.0
 -----

@@ -2,7 +2,7 @@ import pytest
 import socket
 import trio
 
-from aioserf import connection
+from trio_serf import connection
 
 from async_generator import asynccontextmanager
 from async_generator import async_generator, yield_

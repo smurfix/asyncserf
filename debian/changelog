@@ -1,4 +1,4 @@
-aioserf (0.4.0-1) unstable; urgency=medium
+trio-serf (0.4.0-1) unstable; urgency=medium
 
   * Depend on trio. (For now.)
 

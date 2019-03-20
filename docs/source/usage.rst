@@ -3,17 +3,17 @@
  Usage
 +++++++
 
-.. module:: aioserf
+.. module:: trio_serf
 
-.. currentmodule:: aioserf
+.. currentmodule:: trio_serf
 
-Using :mod:`aioserf` is reasonably simple: You open a long-lived connection
+Using :mod:`trio_serf` is reasonably simple: You open a long-lived connection
 and send requests to it.
 
 Let's consider a basic example::
 
     import trio
-    from aioserf import serf_client, UTF8Codec
+    from trio_serf import serf_client, UTF8Codec
 
     async def main():
         async with serf_client(codec = UTF8Codec()) as client:
@@ -33,21 +33,21 @@ This sample is slightly asocial because it indiscriminately responds to all
 queries (and requests all other events even if it doesn't do anythign with
 them), but it's immediately obvious what this code is doing.
 
-.. autofunction: aioserf.serf_client
+.. autofunction: trio_serf.serf_client
 
-.. autoclass: aioserf.AioSerf
+.. autoclass: trio_serf.Serf
 
 ---
 Multiple concurrent requests
 ---
 
 Async code as you know it heavily leans towards throwing requests over your
-interface's wall and then using callbacks to process any replies. AioSerf
+interface's wall and then using callbacks to process any replies. Trio-Serf
 doesn't support that. Instead, you start a new task and do your work there.
-The `aioserf.AioSerf` class has a :meth:`AioSerf.spawn` 
-helper method so that you can start your task within AioSerf's task group.
+The `trio_serf.Serf` class has a :meth:`Serf.spawn` 
+helper method so that you can start your task within Trio-Serf's task group.
 
-.. automethod:: aioserf.AioSerf.spawn
+.. automethod:: trio_serf.Serf.spawn
 
 Thus, let's extend our example with a keepalive transmitter::
 
@@ -83,20 +83,20 @@ let's add that too::
 though in a real, complex system you probably want to open multiple,
 more selective event streams.
 
-.. automethod:: aioserf.AioSerf.cancel
+.. automethod:: trio_serf.Serf.cancel
 
 ---------------------
 Supported RPC methods
 ---------------------
 
-AioSerf aims to support all methods exported by Serf's RPF interface.
+Trio-Serf aims to support all methods exported by Serf's RPF interface.
 
 Streaming
 +++++++++
 
 You've already seen an example for receiving an event stream:
 
-.. automethod:: aioserf.AioSerf.stream
+.. automethod:: trio_serf.Serf.stream
 
 A query is also implemented as a stream because there may be any number of
 replies::
@@ -127,58 +127,58 @@ internally translated to a ``StopAsyncIteration`` exception, so you don't
 have to handle it yourself.
 
 
-.. automethod:: aioserf.AioSerf.query
+.. automethod:: trio_serf.Serf.query
 
 You can also receive a logging stream. Remember that Serf sends a bunch of
 old log entries which may deadlock the RPC socket until you read them all.
 
-.. automethod:: aioserf.AioSerf.monitor
+.. automethod:: trio_serf.Serf.monitor
 
 Requests
 ++++++++
 
-AioSerf contains methods for all remaining RPC methods that Serf offers.
+Trio-Serf contains methods for all remaining RPC methods that Serf offers.
 
 See Serf's `RPC documentation <https://www.serf.io/docs/agent/rpc.html>`
 for details, esp. regarding the values in replies.
 
-.. automethod:: aioserf.AioSerf.event
+.. automethod:: trio_serf.Serf.event
 
-.. automethod:: aioserf.AioSerf.respond
+.. automethod:: trio_serf.Serf.respond
 
-.. automethod:: aioserf.AioSerf.members
+.. automethod:: trio_serf.Serf.members
 
-.. automethod:: aioserf.AioSerf.tags
+.. automethod:: trio_serf.Serf.tags
 
-.. automethod:: aioserf.AioSerf.join
+.. automethod:: trio_serf.Serf.join
 
-.. automethod:: aioserf.AioSerf.force_leave
+.. automethod:: trio_serf.Serf.force_leave
 
-.. automethod:: aioserf.AioSerf.stats
+.. automethod:: trio_serf.Serf.stats
 
 Codecs
 ++++++
 
 Serf's RPC protocol can transport user-specific payloads, which must be
 binary strings. As these are inconvenient and rarely what you need,
-AioSerf transparently encodes and decodes them with a user-supplied codec.
+Trio-Serf transparently encodes and decodes them with a user-supplied codec.
 
 The codec needs to have ``encode`` and ``decode`` methods which return /
 accept :class:`bytes`. The default is to do nothing.
 
-.. automodule:: aioserf.codec
+.. automodule:: trio_serf.codec
     :members:
 
 
 Helper classes
 ++++++++++++++
 
-.. autoclass:: aioserf.stream.SerfStream
+.. autoclass:: trio_serf.stream.SerfStream
 
-.. autoclass:: aioserf.stream.SerfQuery
+.. autoclass:: trio_serf.stream.SerfQuery
 
-.. autoclass:: aioserf.stream.SerfEvent
+.. autoclass:: trio_serf.stream.SerfEvent
     :members:
 
-.. autoclass:: aioserf.util.ValueEvent
+.. autoclass:: trio_serf.util.ValueEvent
 

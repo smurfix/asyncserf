@@ -4,7 +4,7 @@
 # You can set these variables from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
-SPHINXPROJ    = aioserf
+SPHINXPROJ    = trio_serf
 SOURCEDIR     = source
 BUILDDIR      = build
 

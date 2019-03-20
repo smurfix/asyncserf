@@ -23,7 +23,7 @@ class _StreamReply:
     Actually, it also represents the query itself, which is not started
     until you enter the stream's context.
 
-    This is an internal class. See :meth:`AioSerf.stream` for details.
+    This is an internal class. See :meth:`Serf.stream` for details.
     """
     _running = False
     send_stop = True
@@ -87,7 +87,7 @@ class SerfConnection(object):
     """
     Manages RPC communication to and from a Serf agent.
 
-    This is an internal class; see :class:`aioserf.AioSerf` for methods
+    This is an internal class; see :class:`trio_serf.Serf` for methods
     you're supposed to call. ;-)
     """
 

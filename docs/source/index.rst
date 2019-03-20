@@ -1,12 +1,13 @@
-=======================================================
-aioserf: an async Python front-end for Hashicorp's Serf
-=======================================================
+=========================================================
+Trio-Serf: an async Python front-end for Hashicorp's Serf
+=========================================================
 
-AioSerf is an asynchronous interface to `Serf <http://serf.io/>`.
+Trio-Serf is an asynchronous interface to `Serf <http://serf.io/>`.
 
 Key features:
 
-* async; supports ``asyncio`` and `Trio <https://github.com/python-trio/trio/>`.
+* async; uses `Trio <https://github.com/python-trio/trio/>`.
+  This is intentional.
 
 * properly multiplexed; issue multiple commands in parallel
 

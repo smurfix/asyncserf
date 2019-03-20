@@ -1,4 +1,4 @@
-# please also check http://pypi.debian.net/aioserf/watch
+# please also check http://pypi.debian.net/trio-serf/watch
 version=3
 opts=uversionmangle=s/(rc|a|b|c)/~$1/ \
-http://pypi.debian.net/aioserf/aioserf-(.+)\.(?:zip|tgz|tbz|txz|(?:tar\.(?:gz|bz2|xz)))
+http://pypi.debian.net/trio-serf/trio-serf-(.+)\.(?:zip|tgz|tbz|txz|(?:tar\.(?:gz|bz2|xz)))

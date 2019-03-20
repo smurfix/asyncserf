@@ -6,7 +6,7 @@
 # that large than that. 2^63 works, but your code won't get that far.)
 
 import trio
-from aioserf import serf_client
+from trio_serf import serf_client
 import sys
 
 import logging

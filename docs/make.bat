@@ -9,7 +9,7 @@ if "%SPHINXBUILD%" == "" (
 )
 set SOURCEDIR=source
 set BUILDDIR=build
-set SPHINXPROJ=aioserf
+set SPHINXPROJ=trio_serf
 
 if "%1" == "" goto help
 

@@ -1,16 +1,16 @@
 import pytest
 import re
 
-from aioserf import serf_client, SerfError
+from trio_serf import serf_client, SerfError
 
 
-class TestAioSerfCommands(object):
+class TestSerfCommands(object):
     """
     Common commands for the library
     """
     #    @pytest.mark.trio
     #    async def test_rpc_auth(self):
-    #        with mock.patch('aioserf.client.SerfConnection') as mock_serf_connection_class:
+    #        with mock.patch('trio_serf.client.SerfConnection') as mock_serf_connection_class:
     #            mock_serf_connection = mock.MagicMock()
     #            mock_serf_connection_class.return_value = mock_serf_connection
     #            async with serf_client(rpc_auth='secret') as serf:

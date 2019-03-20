@@ -3,7 +3,7 @@
 # run "serf query example FooBar" to test this
 
 import trio
-from aioserf import serf_client, UTF8Codec
+from trio_serf import serf_client, UTF8Codec
 
 import logging
 

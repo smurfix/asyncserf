@@ -1,7 +1,7 @@
-aioserf
-=======
+trio-serf
+=========
 
-AioSerf is an async Python interface to Serf, the decentralised solution
+trio-serf is an async Python interface to Serf, the decentralised solution
 for service discovery and orchestration.
 
 It uses `trio <https://github.com/python-trio/trio>` as its underlying
@@ -10,30 +10,30 @@ async framework. Previous versions used the `anyio
 ``trio``, and ``curio``, but this has been discontinued because of issues
 with error handling.
 
-.. image:: https://badge.fury.io/py/aioserf.svg
+.. image:: https://badge.fury.io/py/trio-serf.svg
     :alt: PyPI latest version badge
-    :target: https://pypi.python.org/pypi/aioserf
-.. image:: https://coveralls.io/repos/smurfix/aioserf/badge.png?branch=master
+    :target: https://pypi.python.org/pypi/trio-serf
+.. image:: https://coveralls.io/repos/smurfix/trio-serf/badge.png?branch=master
     :alt: Code coverage badge
-    :target: https://coveralls.io/r/smurfix/aioserf?branch=master
+    :target: https://coveralls.io/r/smurfix/trio-serf?branch=master
 
 Installation
 ------------
 
-aioserf requires a running Serf agent. See `Serf's agent documentation
+trio-serf requires a running Serf agent. See `Serf's agent documentation
 <http://www.serfdom.io/docs/agent/basics.html>`_ for instructions.
 
-To install aioserf, run the following command:
+To install trio-serf, run the following command:
 
 .. code-block:: bash
 
-    $ pip install aioserf
+    $ pip install trio-serf
 
 or alternatively (you really should be using pip though):
 
 .. code-block:: bash
 
-    $ easy_install aioserf
+    $ easy_install trio-serf
 
 or from source:
 
@@ -50,7 +50,7 @@ These examples require a running async loop.
 
 .. code-block:: python
 
-    from aioserf import serf_client
+    from trio_serf import serf_client
 
     async with serf_client() as client:
         await client.event('foo', 'bar')
@@ -59,7 +59,7 @@ Stream usage:
 
 .. code-block:: python
 
-    from aioserf import serf_client
+    from trio_serf import serf_client
 
     async with serf_client() as client:
         async with client.stream('*') as stream:
@@ -68,9 +68,6 @@ Stream usage:
 
 Development
 ------------
-
-aioserf requires a running Serf agent. See `Serf's agent documentation
-<http://www.serfdom.io/docs/agent/basics.html>`_ for instructions.
 
 You can run the tests using the following commands:
 

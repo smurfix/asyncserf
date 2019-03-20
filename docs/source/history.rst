@@ -1,16 +1,16 @@
 Release history
 ===============
 
-.. currentmodule:: aioserf
+.. currentmodule:: trio_serf
 
 .. towncrier release notes start
 
-AioSerf 0.2.0 (2018-12-18)
---------------------------
+Trio-Serf 0.2.0 (2018-12-18)
+----------------------------
 
 Features
 ~~~~~~~~
 
-- :mod:`aioserf` now supports 100% of Serf's RPC interface.
+- :mod:`trio_serf` now supports 100% of Serf's RPC interface.
 - Documentation (using sphinx)!
 

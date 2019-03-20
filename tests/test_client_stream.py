@@ -1,10 +1,10 @@
 import trio
 import pytest
 
-from aioserf import serf_client, UTF8Codec
+from trio_serf import serf_client, UTF8Codec
 
 
-class TestAioSerfStream(object):
+class TestSerfStream(object):
     async def send_data(self):
         async with serf_client() as serf:
             assert (await serf.event('foo', 'bar')).head == {b'Error': b'', b'Seq': 1}
@@ -36,7 +36,7 @@ class TestAioSerfStream(object):
                 assert res[1] == expected[1]
 
 
-class TestAioSerfQuery(object):
+class TestSerfQuery(object):
     async def answer_query(self, serf, ev):
         async with serf.stream("query:foo") as s:
             ev.set()
@@ -75,7 +75,7 @@ class TestAioSerfQuery(object):
                     await ev2.wait()
 
 
-class TestAioSerfMonitor(object):
+class TestSerfMonitor(object):
     @pytest.mark.trio
     async def test_sending_a_simple_event(self):
         async with serf_client() as serf:

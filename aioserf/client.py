@@ -17,19 +17,19 @@ async def serf_client(**kw):
     """
     Async context manager for connecting to Serf.
 
-    Arguments: see :class:`AioSerf`, except for the task group ``tg``
+    Arguments: see :class:`trio_serf`, except for the task group ``tg``
     which ``serf_client`` creates and manages for you.
 
     This is an async context manager.
     """
     async with trio.open_nursery() as tg:
-        client = AioSerf(tg, **kw)
+        client = Serf(tg, **kw)
         async with client._connected():
             await yield_(client)
             tg.cancel_scope.cancel()
 
 
-class AioSerf(object):
+class Serf(object):
     """
     The main adapter.
 
@@ -168,7 +168,7 @@ class AioSerf(object):
           ``timeout``: Time (in seconds) after which the query will be
                        concluded.
         Returns:
-          a :class:`aioserf.stream.SerfQuery` object.
+          a :class:`trio_serf.stream.SerfQuery` object.
 
         Note that the query will not be started until you enter its
         context. You should then iterate over the results::
@@ -212,7 +212,7 @@ class AioSerf(object):
         """
         Respond to a query.
 
-        You should probably call this via :class:`aioserf.stream.SerfEvent`.
+        You should probably call this via :class:`trio_serf.stream.SerfEvent`.
         """
         if seq is None:
             raise RuntimeError("You cannot respond to this message.")
