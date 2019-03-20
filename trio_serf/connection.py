@@ -86,7 +86,12 @@ class _StreamReply:
                     pass
                 if hdl is not None:
                     # TODO remember this for a while?
-                    del hdl[self.seq]
+                    await self._conn.tg.start(self._cleanup, hdl)
+
+    async def _cleanup(self, hdl, task_status=trio.TASK_STATUS_IGNORED):
+        task_status.started()
+        await trio.sleep(2)
+        del hdl[self.seq]
 
     async def cancel(self):
         await self.q_send.aclose()
