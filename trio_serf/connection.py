@@ -27,7 +27,6 @@ class _StreamReply:
     """
     # pylint: disable=protected-access,too-many-instance-attributes,too-many-arguments
 
-    _running = False
     send_stop = True
     head = None
 
@@ -47,18 +46,12 @@ class _StreamReply:
 
     async def get(self):
         res = await self.q_recv.receive()
-        if res is not None:
-            res = res.unwrap()
-        return res
+        return res.unwrap()
 
     def __aiter__(self):
-        if not self._running:
-            pass  # raise RuntimeError("You need to wrap this in an 'async with'")
         return self
 
     async def __anext__(self):
-        if not self._running:
-            raise StopAsyncIteration
         try:
             res = await self.q_recv.receive()
         except trio.EndOfChannel:
@@ -70,11 +63,9 @@ class _StreamReply:
         res = await reply.get()
         if res is not None:
             self.head = res.head
-            self._running = True
         return self
 
     async def __aexit__(self, *exc):
-        self._running = False
         hdl = self._conn._handlers
         if self.send_stop:
             with trio.CancelScope(shield=True):
@@ -220,7 +211,7 @@ class SerfConnection:
         method again.
         """
         if self._handlers is None:
-            logger.warning("Message without handlers:%s", msg)
+            logger.warning("Reader terminated:%s", msg)
             return
         try:
             seq = msg.head[b"Seq"]
