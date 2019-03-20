@@ -15,13 +15,15 @@ from trio_serf import serf_client
 
 async def foo(client):
     while True:
+        # pylint: disable=protected-access
         await client._conn.call("stop", {"Stop": 123}, expect_body=False)
 
 
 async def main():
-    async with serf_client() as client:
+    async with serf_client() as client:  # pylint: disable=not-async-context-manager
+        # pylint: disable=protected-access
         client._conn._seq = 2 ** 63
-        for i in range(10):
+        for _ in range(10):
             await client.spawn(foo, client)
             while True:
                 await trio.sleep(1)

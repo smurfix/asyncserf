@@ -10,7 +10,7 @@ try:
         def finalize_options(self):
             TestCommand.finalize_options(self)
             self.test_args = []
-            self.test_suite = True
+            self.test_suite = True  # pylint: disable=attribute-defined-outside-init
 
         def run_tests(self):
             import pytest
@@ -28,7 +28,7 @@ try:
     long_description = open(
         os.path.join(os.path.dirname(__file__), "README.rst")
     ).read()
-except:
+except OSError:
     long_description = None
 
 test_requires = ["pytest >= 2.5.2", "pytest-cov >= 2.3"]

@@ -10,7 +10,7 @@ from trio_serf import UTF8Codec, serf_client
 
 
 async def main():
-    async with serf_client(codec=UTF8Codec()) as client:
+    async with serf_client(codec=UTF8Codec()) as client:  # pylint: disable=not-async-context-manager
         await client.event("Hello", payload="I am an example")
 
         async with client.stream("*") as stream:
