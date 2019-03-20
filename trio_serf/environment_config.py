@@ -19,15 +19,15 @@ class EnvironmentConfig(object):
     """
 
     def __init__(self):
-        self.host = 'localhost'
+        self.host = "localhost"
         self.port = 7373
         self.auth_key = None
 
-        rpc_addr = os.getenv('SERF_RPC_ADDR')
+        rpc_addr = os.getenv("SERF_RPC_ADDR")
         if rpc_addr:
-            self.host, self.port = rpc_addr.split(':')
+            self.host, self.port = rpc_addr.split(":")
             self.port = int(self.port)
 
-        rpc_auth = os.getenv('SERF_RPC_AUTH')
+        rpc_auth = os.getenv("SERF_RPC_AUTH")
         if rpc_auth:
             self.auth_key = rpc_auth

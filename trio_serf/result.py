@@ -21,7 +21,8 @@ class SerfResult(object):
         yield self.body
 
     def __repr__(self):
-        return "%(class)s<head=%(h)s,body=%(b)s>" \
-            % {'class': self.__class__.__name__,
-               'h': self.head,
-               'b': self.body}
+        return "%(class)s<head=%(h)s,body=%(b)s>" % {
+            "class": self.__class__.__name__,
+            "h": self.head,
+            "b": self.body,
+        }

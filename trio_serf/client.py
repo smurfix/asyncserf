@@ -45,7 +45,7 @@ class Serf(object):
             pass  # work with 'client'
     """
 
-    def __init__(self, tg, host='localhost', port=7373, rpc_auth=None, codec=None):
+    def __init__(self, tg, host="localhost", port=7373, rpc_auth=None, codec=None):
         self.tg = tg
         self.host = host
         self.port = port
@@ -75,8 +75,9 @@ class Serf(object):
             finally:
                 self._conn = None
 
-    async def _spawn(self, val, proc, args, kw, *,
-            task_status=trio.TASK_STATUS_IGNORED):
+    async def _spawn(
+        self, val, proc, args, kw, *, task_status=trio.TASK_STATUS_IGNORED
+    ):
         """
         Helper for starting a task.
 
@@ -103,7 +104,7 @@ class Serf(object):
         """
         self.tg.cancel_scope.cancel()
 
-    def stream(self, event_types='*'):
+    def stream(self, event_types="*"):
         """
         Open an event stream.
 
@@ -144,11 +145,13 @@ class Serf(object):
 
         """
         if isinstance(event_types, list):
-            event_types = ','.join(event_types)
-        res = self._conn.stream('stream', {'Type': event_types})
+            event_types = ",".join(event_types)
+        res = self._conn.stream("stream", {"Type": event_types})
         return SerfStream(self, res)
 
-    def query(self, name, payload=None, *, nodes=None, tags=None, request_ack=False, timeout=0):
+    def query(
+        self, name, payload=None, *, nodes=None, tags=None, request_ack=False, timeout=0
+    ):
         """
         Send a query.
 
@@ -181,20 +184,20 @@ class Serf(object):
                                  repr(response.payload)))
 
         """
-        params = {'Name': name, 'RequestAck': request_ack}
+        params = {"Name": name, "RequestAck": request_ack}
         if payload is not None:
-            params['Payload'] = self.codec.encode(payload)
+            params["Payload"] = self.codec.encode(payload)
         if nodes:
-            params['FilterNodes'] = list(nodes)
+            params["FilterNodes"] = list(nodes)
         if tags:
-            params['FilterTags'] = dict(tags)
+            params["FilterTags"] = dict(tags)
         if timeout:
-            params['Timeout'] = int(timeout * 10**9)
+            params["Timeout"] = int(timeout * 10 ** 9)
 
-        res = self._conn.stream('query', params)
+        res = self._conn.stream("query", params)
         return SerfQuery(self, res)
 
-    def monitor(self, log_level='info'):
+    def monitor(self, log_level="info"):
         """
         Ask the server to stream (some of) its log entries to you.
 
@@ -203,7 +206,7 @@ class Serf(object):
                          Possible values are "trace", "debug", "info", "warn",
                          and "err". The default is "info".
         """
-        res = self._conn.stream('monitor', {'LogLevel': log_level})
+        res = self._conn.stream("monitor", {"LogLevel": log_level})
         return SerfStream(self, res)
 
     def respond(self, seq, payload):
@@ -216,7 +219,9 @@ class Serf(object):
             raise RuntimeError("You cannot respond to this message.")
         if payload is not None:
             payload = self.codec.encode(payload)
-        return self._conn.call("respond", {'ID': seq, 'Payload': payload}, expect_body=False)
+        return self._conn.call(
+            "respond", {"ID": seq, "Payload": payload}, expect_body=False
+        )
 
     def event(self, name, payload=None, coalesce=True):
         """
@@ -232,11 +237,9 @@ class Serf(object):
         if payload is not None:
             payload = self.codec.encode(payload)
         return self._conn.call(
-            'event', {
-                'Name': name,
-                'Payload': payload,
-                'Coalesce': coalesce
-            }, expect_body=False
+            "event",
+            {"Name": name, "Payload": payload, "Coalesce": coalesce},
+            expect_body=False,
         )
 
     def members(self, name=None, status=None, tags=None):
@@ -255,18 +258,18 @@ class Serf(object):
         filters = {}
 
         if name is not None:
-            filters['Name'] = name
+            filters["Name"] = name
 
         if status is not None:
-            filters['Status'] = status
+            filters["Status"] = status
 
         if tags is not None:
-            filters['Tags'] = tags
+            filters["Tags"] = tags
 
         if len(filters) == 0:
-            return self._conn.call('members')
+            return self._conn.call("members")
         else:
-            return self._conn.call('members-filtered', filters)
+            return self._conn.call("members-filtered", filters)
 
     def tags(self, **tags):
         """Set this node's tags.
@@ -282,10 +285,10 @@ class Serf(object):
             if v is None:
                 del tags[k]
                 deleted.append(k)
-        tags = {'Tags': tags}
+        tags = {"Tags": tags}
         if deleted:
-            tags['DeleteTags'] = deleted
-        return self._conn.call('tags', tags)
+            tags["DeleteTags"] = deleted
+        return self._conn.call("tags", tags)
 
     def leave(self, name):
         """
@@ -294,7 +297,7 @@ class Serf(object):
         This will ultimately shut down the connection, probably with an
         error.
         """
-        return self._conn.call('leave', expect_body=False)
+        return self._conn.call("leave", expect_body=False)
 
     def force_leave(self, name):
         """
@@ -303,7 +306,7 @@ class Serf(object):
         Args:
           ``name``: the name of the node that should leave.
         """
-        return self._conn.call('force-leave', {"Node": name}, expect_body=False)
+        return self._conn.call("force-leave", {"Node": name}, expect_body=False)
 
     def install_key(self, key):
         """
@@ -312,7 +315,7 @@ class Serf(object):
         Args:
           ``key``: the new 16-byte key, base64-encoded.
         """
-        return self._conn.call('install-key', {"Key": key}, expect_body=True)
+        return self._conn.call("install-key", {"Key": key}, expect_body=True)
 
     def use_key(self, key):
         """
@@ -321,7 +324,7 @@ class Serf(object):
         Args:
           ``key``: an existing 16-byte key, base64-encoded.
         """
-        return self._conn.call('use-key', {"Key": key}, expect_body=True)
+        return self._conn.call("use-key", {"Key": key}, expect_body=True)
 
     def remove_key(self, key):
         """
@@ -330,14 +333,14 @@ class Serf(object):
         Args:
           ``key``: the obsolete 16-byte key, base64-encoded.
         """
-        return self._conn.call('remove-key', {"Key": key}, expect_body=True)
+        return self._conn.call("remove-key", {"Key": key}, expect_body=True)
 
     def list_keys(self):
         """
         Return a list of all encryption keys.
 
         """
-        return self._conn.call('list-keys', expect_body=True)
+        return self._conn.call("list-keys", expect_body=True)
 
     def join(self, location, replay=False):
         """
@@ -352,7 +355,9 @@ class Serf(object):
         """
         if not isinstance(location, (list, tuple)):
             location = [location]
-        return self._conn.call('join', {"Existing": location, "Replay": replay}, expect_body=2)
+        return self._conn.call(
+            "join", {"Existing": location, "Replay": replay}, expect_body=2
+        )
 
     def get_coordinate(self, node):
         """
@@ -362,10 +367,10 @@ class Serf(object):
           ``node``: The node to request
 
         """
-        return self._conn.call(' get-coordinate', {"Node": node}, expect_body=True)
+        return self._conn.call(" get-coordinate", {"Node": node}, expect_body=True)
 
     def stats(self):
         """
         Obtain operator debugging information about the running Serf agent.
         """
-        return self._conn.call('stats')
+        return self._conn.call("stats")

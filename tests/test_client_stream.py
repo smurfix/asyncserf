@@ -7,29 +7,28 @@ from trio_serf import serf_client, UTF8Codec
 class TestSerfStream(object):
     async def send_data(self):
         async with serf_client() as serf:
-            assert (await serf.event('foo', 'bar')).head == {b'Error': b'', b'Seq': 1}
-            assert (await serf.event('bill', 'gates')).head == {b'Error': b'', b'Seq': 2}
+            assert (await serf.event("foo", "bar")).head == {b"Error": b"", b"Seq": 1}
+            assert (await serf.event("bill", "gates")).head == {
+                b"Error": b"",
+                b"Seq": 2,
+            }
 
     @pytest.mark.trio
     async def test_stream(self):
         async with serf_client(codec=UTF8Codec()) as serf:
             async with serf.stream("user") as response:
                 await self.send_data()
-                assert response.head == {b'Error': b'', b'Seq': 1}
-                expected_data = sorted([
-                    ['bill', 'gates'],
-                    ['foo', 'bar'],
-                ])
+                assert response.head == {b"Error": b"", b"Seq": 1}
+                expected_data = sorted([["bill", "gates"], ["foo", "bar"]])
                 all_responses = []
                 async for resp in response:
                     all_responses.append(resp)
                     if len(all_responses) == 2:
                         break
 
-            sorted_responses = sorted([[
-                res.name,
-                res.payload,
-            ] for res in all_responses])
+            sorted_responses = sorted(
+                [[res.name, res.payload] for res in all_responses]
+            )
             for i, res in enumerate(sorted_responses):
                 expected = expected_data[i]
                 assert res[0] == expected[0]
@@ -49,7 +48,7 @@ class TestSerfQuery(object):
         reps = 0
         async with serf.query("foo", payload="baz", request_ack=True, timeout=1) as q:
             async for r in q:
-                if not hasattr(r, 'type'):
+                if not hasattr(r, "type"):
                     break
                 if r.type == "ack":
                     acks += 1
@@ -79,8 +78,11 @@ class TestSerfMonitor(object):
     @pytest.mark.trio
     async def test_sending_a_simple_event(self):
         async with serf_client() as serf:
-            assert (await serf.event('foo', 'bar')).head == {b'Error': b'', b'Seq': 1}
-            assert (await serf.event('bill', 'gates')).head == {b'Error': b'', b'Seq': 2}
+            assert (await serf.event("foo", "bar")).head == {b"Error": b"", b"Seq": 1}
+            assert (await serf.event("bill", "gates")).head == {
+                b"Error": b"",
+                b"Seq": 2,
+            }
 
     @pytest.mark.trio
     async def test_monitor(self):

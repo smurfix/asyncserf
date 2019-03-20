@@ -14,9 +14,8 @@ class TestSerfResult(object):
         assert r.body is None
 
     def test_provides_a_pretty_printed_form_for_repl_use(self):
-        r = result.SerfResult(head={"a": 1}, body=('foo', 'bar'))
-        assert str(r) == \
-            "SerfResult<head={'a': 1},body=('foo', 'bar')>"
+        r = result.SerfResult(head={"a": 1}, body=("foo", "bar"))
+        assert str(r) == "SerfResult<head={'a': 1},body=('foo', 'bar')>"
 
     def test_can_convert_to_list_and_tuple(self, head_and_body_result):
         for structure in [list, tuple]:

@@ -1,6 +1,7 @@
 # Streaming frontend
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -21,6 +22,7 @@ class SerfStream:
 
     Note that the actual query is not started until you enter the context.
     """
+
     _it = None
 
     def __init__(self, client, stream):
@@ -115,6 +117,7 @@ class SerfEvent:
     Non-decodable payloads trigger a fatal error. To avoid that, use the
     :class:`trio_serf.codec.NoopCodec` codec and decode manually.
     """
+
     id = None
     payload = None
 
@@ -136,7 +139,7 @@ class SerfEvent:
     def _set(self, body, codec):
         logger.debug("Set %s with %s", self, body)
         for k, v in body.items():
-            k = k.decode('UTF-8')
+            k = k.decode("UTF-8")
             if v is not None:
                 if k == "Payload":
                     v = codec.decode(v)
@@ -147,8 +150,10 @@ class SerfEvent:
 
     def __repr__(self):
         return "<%s: %s>" % (
-            self.__class__.__name__, ",".join(
-                "%s:%s" % (str(k), repr(v)) for k, v in vars(self).items()
-                if not k.startswith('_')
-            )
+            self.__class__.__name__,
+            ",".join(
+                "%s:%s" % (str(k), repr(v))
+                for k, v in vars(self).items()
+                if not k.startswith("_")
+            ),
         )

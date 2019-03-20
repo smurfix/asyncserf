@@ -2,11 +2,7 @@
 
 import msgpack
 
-__all__ = [
-    'UTF8Codec',
-    'MsgPackCodec',
-    'NoopCodec',
-]
+__all__ = ["UTF8Codec", "MsgPackCodec", "NoopCodec"]
 
 
 class NoopCodec:

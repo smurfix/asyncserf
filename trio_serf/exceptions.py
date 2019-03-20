@@ -2,6 +2,7 @@ class SerfError(Exception):
     """
     Generic class for errors returned by Serf.
     """
+
     pass
 
 
@@ -22,4 +23,5 @@ class SerfClosedError(SerfError):
     """
     Exception raised when Serf has closed the connection.
     """
+
     pass

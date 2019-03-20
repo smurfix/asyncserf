@@ -10,6 +10,7 @@ from .util import ValueEvent
 from .exceptions import SerfError, SerfConnectionError, SerfClosedError
 
 from logging import getLogger
+
 logger = getLogger(__name__)
 
 _conn_id = 0
@@ -24,6 +25,7 @@ class _StreamReply:
 
     This is an internal class. See :meth:`Serf.stream` for details.
     """
+
     _running = False
     send_stop = True
 
@@ -32,7 +34,7 @@ class _StreamReply:
         self._command = command
         self._params = params
         self.seq = seq
-        self.q_send,self.q_recv = trio.open_memory_channel(10000)
+        self.q_send, self.q_recv = trio.open_memory_channel(10000)
         self.expect_body = -expect_body
 
     async def set(self, value):
@@ -75,7 +77,9 @@ class _StreamReply:
         if self.send_stop:
             with trio.CancelScope(shield=True):
                 try:
-                    await self._conn.call("stop", params={b'Stop': self.seq}, expect_body=False)
+                    await self._conn.call(
+                        "stop", params={b"Stop": self.seq}, expect_body=False
+                    )
                 except trio.ClosedResourceError:
                     pass
                 if hdl is not None:
@@ -99,7 +103,7 @@ class SerfConnection(object):
     _socket_recv_size = resource.getpagesize()
     _conn_id = 0
 
-    def __init__(self, tg, host='localhost', port=7373):
+    def __init__(self, tg, host="localhost", port=7373):
         global _conn_id
         _conn_id += 1
         self._conn_id = _conn_id
@@ -117,11 +121,12 @@ class SerfConnection(object):
     # hope) and only subsequent replies will have a body.
 
     def __repr__(self):
-        return "<%(class)s counter=%(c)s host=%(h)s port=%(p)s>" \
-            % {'class': self.__class__.__name__,
-               'c': self._seq,
-               'h': self.host,
-               'p': self.port}
+        return "<%(class)s counter=%(c)s host=%(h)s port=%(p)s>" % {
+            "class": self.__class__.__name__,
+            "c": self._seq,
+            "h": self.host,
+            "p": self.port,
+        }
 
     def stream(self, command, params=None, expect_body=True):
         """
@@ -209,7 +214,7 @@ class SerfConnection(object):
             logger.warn("Message without handlers:%s", msg)
             return
         try:
-            seq = msg.head[b'Seq']
+            seq = msg.head[b"Seq"]
         except KeyError:
             raise RuntimeError("Reader got out of sync: " + str(msg))
         try:
@@ -218,14 +223,17 @@ class SerfConnection(object):
             logger.warn("Spurious message %s: %s", seq, msg)
             return
 
-        if msg.body is None and hdl.expect_body > 0 and (hdl.expect_body > 1
-                                                         or not msg.head[b'Error']):
+        if (
+            msg.body is None
+            and hdl.expect_body > 0
+            and (hdl.expect_body > 1 or not msg.head[b"Error"])
+        ):
             return True
         # Do this here because stream replies might arrive immediately
         # i.e. before the queue listener gets around to us
         if hdl.expect_body < 0:
             hdl.expect_body = -hdl.expect_body
-        if msg.head[b'Error']:
+        if msg.head[b"Error"]:
             await hdl.set_error(SerfError(msg))
             await trio.sleep(0.01)
         else:
@@ -277,13 +285,13 @@ class SerfConnection(object):
         Sets up the connection with the Serf agent and does the
         initial handshake.
         """
-        return await self.call('handshake', {"Version": 1}, expect_body=False)
+        return await self.call("handshake", {"Version": 1}, expect_body=False)
 
     async def auth(self, auth_key):
         """
         Performs the initial authentication on connect
         """
-        return await self.call('auth', {"AuthKey": auth_key}, expect_body=False)
+        return await self.call("auth", {"AuthKey": auth_key}, expect_body=False)
 
     @asynccontextmanager
     async def _connected(self):
@@ -326,7 +334,7 @@ class SerfConnection(object):
         :param obj_dict: A dictionary containing the msgpack map.
         :return: A dictionary with the correct 'Addr' format.
         """
-        key = b'Addr'
+        key = b"Addr"
         ip_addr = obj_dict.get(key, None)
         if ip_addr is not None:
             if len(ip_addr) == 4:  # IPv4
@@ -336,11 +344,11 @@ class SerfConnection(object):
 
                 # Check if the address is an IPv4 mapped IPv6 address:
                 # ie. ::ffff:xxx.xxx.xxx.xxx
-                if ip_addr.startswith('::ffff:'):
+                if ip_addr.startswith("::ffff:"):
                     ip_addr = ip_addr[7:]
 
             # The msgpack codec is set to raw,
             # thus everything needs to be bytes
-            obj_dict[key] = ip_addr.encode('utf-8')
+            obj_dict[key] = ip_addr.encode("utf-8")
 
         return obj_dict

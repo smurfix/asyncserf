@@ -8,6 +8,7 @@ class TestSerfCommands(object):
     """
     Common commands for the library
     """
+
     #    @pytest.mark.trio
     #    async def test_rpc_auth(self):
     #        with mock.patch('trio_serf.client.SerfConnection') as mock_serf_connection_class:
@@ -20,7 +21,7 @@ class TestSerfCommands(object):
     @pytest.mark.trio
     async def test_has_a_default_host_and_port(self):
         async with serf_client() as serf:
-            assert serf.host == 'localhost'
+            assert serf.host == "localhost"
             assert serf.port == 7373
 
     @pytest.mark.trio
@@ -31,117 +32,130 @@ class TestSerfCommands(object):
     @pytest.mark.trio
     async def test_sending_a_simple_event(self):
         async with serf_client() as serf:
-            assert (await serf.event('foo', 'bar')).head == {b'Error': b'', b'Seq': 1}
+            assert (await serf.event("foo", "bar")).head == {b"Error": b"", b"Seq": 1}
 
     @pytest.mark.trio
     async def test_sending_a_non_coalescing_event(self):
         async with serf_client() as serf:
-            assert (await serf.event('foo', 'bar')).head == {b'Error': b'', b'Seq': 1}
+            assert (await serf.event("foo", "bar")).head == {b"Error": b"", b"Seq": 1}
 
     @pytest.mark.trio
     async def test_event_payload_is_optional(self):
         async with serf_client() as serf:
-            assert (await serf.event('foo')).head == {b'Error': b'', b'Seq': 1}
-            assert (await serf.event('bar', coalesce=False)).head == \
-                {b'Error': b'', b'Seq': 2}
+            assert (await serf.event("foo")).head == {b"Error": b"", b"Seq": 1}
+            assert (await serf.event("bar", coalesce=False)).head == {
+                b"Error": b"",
+                b"Seq": 2,
+            }
 
     @pytest.mark.trio
     async def test_force_leaving_of_a_node(self):
         async with serf_client() as serf:
-            assert (await serf.force_leave('bad-node-name')).head == \
-                {b'Error': b'', b'Seq': 1}
+            assert (await serf.force_leave("bad-node-name")).head == {
+                b"Error": b"",
+                b"Seq": 1,
+            }
 
     @pytest.mark.trio
     async def test_joining_a_non_existent_node(self):
         async with serf_client() as serf:
-            address = '127.0.0.1:23000'
+            address = "127.0.0.1:23000"
             with pytest.raises(SerfError) as e:
                 await serf.join([address])
-            assert 'dial tcp' in str(e.value)
+            assert "dial tcp" in str(e.value)
             with pytest.raises(SerfError) as e:
                 await serf.join([address])
-            assert 'dial tcp' in str(e.value)
+            assert "dial tcp" in str(e.value)
 
     @pytest.mark.trio
     async def test_joining_an_existing_node_fails(self):
         async with serf_client() as serf:
             with pytest.raises(SerfError) as e:
-                await serf.join(['127.0.0.1:7373'])
+                await serf.join(["127.0.0.1:7373"])
             join = e.value.args[0]
-            assert join.head[b'Seq'] == 1
-            assert b'EOF' in join.head[b'Error'] or b'connection reset by peer' in join.head[b'Error']
-            assert join.body == {b'Num': 0}
+            assert join.head[b"Seq"] == 1
+            assert (
+                b"EOF" in join.head[b"Error"]
+                or b"connection reset by peer" in join.head[b"Error"]
+            )
+            assert join.body == {b"Num": 0}
 
     @pytest.mark.trio
     async def test_providing_a_single_value_should_put_it_inside_a_list(self):
         async with serf_client() as serf:
             with pytest.raises(SerfError) as e:
-                await serf.join('127.0.0.1:7373')
+                await serf.join("127.0.0.1:7373")
             join = e.value.args[0]
-            assert join.head[b'Seq'] == 1
-            assert b'EOF' in join.head[b'Error'] or b'connection reset by peer' in join.head[b'Error']
-            assert join.body == {b'Num': 0}
+            assert join.head[b"Seq"] == 1
+            assert (
+                b"EOF" in join.head[b"Error"]
+                or b"connection reset by peer" in join.head[b"Error"]
+            )
+            assert join.body == {b"Num": 0}
 
     @pytest.mark.trio
     async def test_member_list_is_not_empty(self):
         async with serf_client() as serf:
             members = await serf.members()
-            assert len(members.body[b'Members']) > 0
+            assert len(members.body[b"Members"]) > 0
 
     @pytest.mark.trio
     async def test_member_filtering_name(self):
         async with serf_client() as serf:
             # Get current node name.
             members = await serf.members()
-            name = members.body[b'Members'][0][b'Name']
+            name = members.body[b"Members"][0][b"Name"]
 
             members = await serf.members(name=name)
-            assert len(members.body[b'Members']) == 1
+            assert len(members.body[b"Members"]) == 1
 
     @pytest.mark.trio
     async def test_member_filtering_name_no_matches(self):
         async with serf_client() as serf:
             members = await serf.members(name="no_node_has_this_name")
-            assert len(members.body[b'Members']) == 0
+            assert len(members.body[b"Members"]) == 0
 
     @pytest.mark.trio
     async def test_member_filtering_status_alive(self):
         async with serf_client() as serf:
             members = await serf.members(status="alive")
-            assert len(members.body[b'Members']) > 0
+            assert len(members.body[b"Members"]) > 0
 
     @pytest.mark.trio
     async def test_member_filtering_status_no_matches(self):
         async with serf_client() as serf:
             members = await serf.members(status="invalid_status")
-            assert len(members.body[b'Members']) == 0
+            assert len(members.body[b"Members"]) == 0
 
     @pytest.mark.trio
     async def test_member_filtering_tags(self):
         async with serf_client() as serf:
-            members = await serf.members(tags={'foo': 'bar'})
-            assert len(members.body[b'Members']) == 1
+            members = await serf.members(tags={"foo": "bar"})
+            assert len(members.body[b"Members"]) == 1
 
     @pytest.mark.trio
     async def test_member_filtering_tags_regex(self):
         async with serf_client() as serf:
-            members = await serf.members(tags={'foo': 'ba[rz]'})
-            assert len(members.body[b'Members']) == 1
+            members = await serf.members(tags={"foo": "ba[rz]"})
+            assert len(members.body[b"Members"]) == 1
 
     @pytest.mark.trio
     async def test_member_check_addr(self):
         async with serf_client() as serf:
             # regression test for issue 20
             members = await serf.members()
-            ip_addr = members.body[b'Members'][0][b'Addr']
+            ip_addr = members.body[b"Members"][0][b"Addr"]
 
-            assert re.match(rb'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', ip_addr) or b':' in ip_addr
+            assert (
+                re.match(rb"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", ip_addr)
+                or b":" in ip_addr
+            )
 
     @pytest.mark.trio
     async def test_stats_is_well_formed(self):
         async with serf_client() as serf:
             stats = await serf.stats()
-            for key in [b'agent', b'runtime', b'serf', b'tags']:
+            for key in [b"agent", b"runtime", b"serf", b"tags"]:
                 assert key in stats.body
                 assert isinstance(stats.body[key], dict)
 
