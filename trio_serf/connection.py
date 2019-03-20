@@ -109,6 +109,7 @@ class SerfConnection(object):
         self._socket = None
         self._seq = 0
         self._handlers = {}
+        self._send_lock = trio.Lock()
 
     # handler protocol: incoming messages are passed in using `.set`.
     # If .expect_body is True then the reader will add a body to the
@@ -182,7 +183,8 @@ class SerfConnection(object):
         if params is not None:
             msg += msgpack.packb(params)
 
-        await self._socket.send_all(msg)
+        async with self._send_lock:
+            await self._socket.send_all(msg)
 
         return _reply
 
