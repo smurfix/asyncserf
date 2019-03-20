@@ -69,7 +69,7 @@ class TestSerfCommands(object):
                 await serf.join(['127.0.0.1:7373'])
             join = e.value.args[0]
             assert join.head[b'Seq'] == 1
-            assert b'EOF' in join.head[b'Error']
+            assert b'EOF' in join.head[b'Error'] or b'connection reset by peer' in join.head[b'Error']
             assert join.body == {b'Num': 0}
 
     @pytest.mark.trio
@@ -79,7 +79,7 @@ class TestSerfCommands(object):
                 await serf.join('127.0.0.1:7373')
             join = e.value.args[0]
             assert join.head[b'Seq'] == 1
-            assert b'EOF' in join.head[b'Error']
+            assert b'EOF' in join.head[b'Error'] or b'connection reset by peer' in join.head[b'Error']
             assert join.body == {b'Num': 0}
 
     @pytest.mark.trio
