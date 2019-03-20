@@ -84,7 +84,7 @@ class Serf(object):
         This accepts a :class:`ValueEvent`, to pass the task's cancel scope
         back to the caller.
         """
-        with trio.open_cancel_scope() as scope:
+        with trio.CancelScope() as scope:
             task_status.started(scope)
             await proc(*args, **kw)
 

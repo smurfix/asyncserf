@@ -73,7 +73,7 @@ class _StreamReply:
         self._running = False
         hdl = self._conn._handlers
         if self.send_stop:
-            async with trio.open_cancel_scope(shield=True):
+            with trio.CancelScope(shield=True):
                 await self._conn.call("stop", params={b'Stop': self.seq}, expect_body=False)
                 if hdl is not None:
                     # TODO remember this for a while?
@@ -221,10 +221,10 @@ class SerfConnection(object):
         if hdl.expect_body < 0:
             hdl.expect_body = -hdl.expect_body
         if msg.head[b'Error']:
-            hdl.set_error(SerfError(msg))
+            await hdl.set_error(SerfError(msg))
             await trio.sleep(0.01)
         else:
-            hdl.set(msg)
+            await hdl.set(msg)
         return False
 
     async def _reader(self, *, task_status=trio.TASK_STATUS_IGNORED):
@@ -235,7 +235,7 @@ class SerfConnection(object):
         unpacker = msgpack.Unpacker(object_hook=self._decode_addr_key)
         cur_msg = None
 
-        with trio.open_cancel_scope(shield=True) as s:
+        with trio.CancelScope(shield=True) as s:
             task_status.started(s)
 
             try:
@@ -263,9 +263,9 @@ class SerfConnection(object):
                                 cur_msg = msg
             finally:
                 hdl, self._handlers = self._handlers, None
-                async with trio.open_cancel_scope(shield=True):
+                with trio.CancelScope(shield=True):
                     for m in hdl.values():
-                        m.cancel()
+                        await m.cancel()
 
     async def handshake(self):
         """
