@@ -69,9 +69,11 @@ class Serf(object):
                     await self._conn.auth(self.rpc_auth)
                 yield self
         finally:
-            if self._conn is not None:
-                await self._conn.call("leave")
-            self._conn = None
+            try:
+                if self._conn is not None:
+                    await self._conn.call("leave")
+            finally:
+                self._conn = None
 
     async def _spawn(self, val, proc, args, kw, *,
             task_status=trio.TASK_STATUS_IGNORED):
