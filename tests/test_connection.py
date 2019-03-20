@@ -1,10 +1,10 @@
-import pytest
 import socket
+
+import pytest
 import trio
+from async_generator import asynccontextmanager
 
 from trio_serf import connection
-
-from async_generator import asynccontextmanager
 
 
 def extract_addr(rpc, ip_address, address_family=socket.AF_INET6):

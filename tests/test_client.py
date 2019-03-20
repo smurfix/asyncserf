@@ -1,7 +1,8 @@
-import pytest
 import re
 
-from trio_serf import serf_client, SerfError
+import pytest
+
+from trio_serf import SerfError, serf_client
 
 
 class TestSerfCommands(object):

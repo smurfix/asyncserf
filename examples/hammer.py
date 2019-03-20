@@ -5,11 +5,12 @@
 # in excess of 2^32. (2^64 fails because MsgPack cannot encode integers
 # that large than that. 2^63 works, but your code won't get that far.)
 
-import trio
-from trio_serf import serf_client
+import logging
 import sys
 
-import logging
+import trio
+
+from trio_serf import serf_client
 
 
 async def foo(client):
@@ -19,12 +20,12 @@ async def foo(client):
 
 async def main():
     async with serf_client() as client:
-        client._conn._seq = 2**63
+        client._conn._seq = 2 ** 63
         for i in range(10):
             await client.spawn(foo, client)
             while True:
                 await trio.sleep(1)
-                print(client._conn._seq - 2**63, end=" \r")
+                print(client._conn._seq - 2 ** 63, end=" \r")
                 sys.stdout.flush()
 
 

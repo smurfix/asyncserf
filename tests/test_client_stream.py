@@ -1,7 +1,7 @@
-import trio
 import pytest
+import trio
 
-from trio_serf import serf_client, UTF8Codec
+from trio_serf import UTF8Codec, serf_client
 
 
 class TestSerfStream(object):

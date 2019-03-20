@@ -2,7 +2,6 @@
 
 import attr
 import outcome
-
 import trio
 
 try:

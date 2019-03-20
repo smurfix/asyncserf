@@ -1,15 +1,15 @@
-import socket
-import msgpack
 import resource
-from async_generator import asynccontextmanager
-import trio
-import outcome
+import socket
+from logging import getLogger
 
+import msgpack
+import outcome
+import trio
+from async_generator import asynccontextmanager
+
+from .exceptions import SerfClosedError, SerfConnectionError, SerfError
 from .result import SerfResult
 from .util import ValueEvent
-from .exceptions import SerfError, SerfConnectionError, SerfClosedError
-
-from logging import getLogger
 
 logger = getLogger(__name__)
 

@@ -3,11 +3,12 @@
 # (c) 2018 Matthias Urlichs
 
 import trio
-from .connection import SerfConnection
-from .stream import SerfStream, SerfQuery
-from .codec import NoopCodec
-from .util import ValueEvent
 from async_generator import asynccontextmanager
+
+from .codec import NoopCodec
+from .connection import SerfConnection
+from .stream import SerfQuery, SerfStream
+from .util import ValueEvent
 
 
 @asynccontextmanager
