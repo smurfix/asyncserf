@@ -2,7 +2,6 @@ import socket
 import msgpack
 import resource
 from async_generator import asynccontextmanager
-from async_generator import async_generator, yield_
 import trio
 import outcome
 
@@ -281,7 +280,6 @@ class SerfConnection(object):
         return await self.call('auth', {"AuthKey": auth_key}, expect_body=False)
 
     @asynccontextmanager
-    @async_generator
     async def _connected(self):
         """
         This async context manager handles the actual TCP connection to
@@ -292,7 +290,7 @@ class SerfConnection(object):
             async with await trio.open_tcp_stream(self.host, self.port) as sock:
                 self._socket = sock
                 reader = await self.tg.start(self._reader)
-                await yield_(self)
+                yield self
         except socket.error as e:
             raise SerfConnectionError(self.host, self.port) from e
         finally:

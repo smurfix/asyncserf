@@ -5,7 +5,6 @@ import trio
 from trio_serf import connection
 
 from async_generator import asynccontextmanager
-from async_generator import async_generator, yield_
 
 
 def extract_addr(rpc, ip_address, address_family=socket.AF_INET6):
@@ -15,12 +14,11 @@ def extract_addr(rpc, ip_address, address_family=socket.AF_INET6):
 
 
 @asynccontextmanager
-@async_generator
 async def rpc_connect(**kw):
     async with trio.open_nursery() as tg:
         conn = connection.SerfConnection(tg, **kw)
         async with conn._connected():
-            await yield_(conn)
+            yield conn
 
 
 class TestSerfConnection(object):

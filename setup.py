@@ -52,4 +52,5 @@ setup(
     install_requires=['msgpack >= 0.5.0', 'trio >= 0.11', 'outcome', 'async_generator', 'attrs >= 18.1'],
     tests_require=test_requires,
     cmdclass={'test': PyTest},
+    python_requires='>=3.6',
 )
