@@ -55,8 +55,9 @@ class _StreamReply:
     async def __anext__(self):
         if not self._running:
             raise StopAsyncIteration
-        res = await self.q_recv.receive()
-        if res is None:
+        try:
+            res = await self.q_recv.receive()
+        except trio.EndOfChannel:
             raise StopAsyncIteration
         return res.unwrap()
 
