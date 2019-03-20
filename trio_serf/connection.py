@@ -227,7 +227,7 @@ class SerfConnection(object):
             hdl.set(msg)
         return False
 
-    async def _reader(self, scope):
+    async def _reader(self, *, task_status=trio.TASK_STATUS_IGNORED):
         """Main loop for reading
 
         TODO: add a timeout for receiving message bodies.
@@ -236,7 +236,7 @@ class SerfConnection(object):
         cur_msg = None
 
         with trio.open_cancel_scope(shield=True) as s:
-            scope.set(s)
+            task_status.started(s)
 
             try:
                 while self._socket is not None:
@@ -287,18 +287,17 @@ class SerfConnection(object):
         This async context manager handles the actual TCP connection to
         the Serf process.
         """
-        reader = ValueEvent()
+        reader = None
         try:
             async with await trio.open_tcp_stream(self.host, self.port) as sock:
                 self._socket = sock
-                await self.tg.spawn(self._reader, reader)
-                reader = await reader.get()
+                reader = await self.tg.start(self._reader)
                 await yield_(self)
         except socket.error as e:
             raise SerfConnectionError(self.host, self.port) from e
         finally:
             if self._socket is not None:
-                await self._socket.close()
+                await self._socket.aclose()
                 self._socket = None
             if reader is not None:
                 reader.cancel()

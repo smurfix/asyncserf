@@ -5,6 +5,11 @@ import outcome
 
 import trio
 
+try:
+    from concurrent.futures import CancelledError
+except ImportError:
+    class CancelledError(RuntimeError):
+        pass
 
 @attr.s
 class ValueEvent:

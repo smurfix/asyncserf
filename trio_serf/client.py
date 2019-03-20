@@ -76,7 +76,8 @@ class Serf(object):
                 await self._conn.call("leave")
             self._conn = None
 
-    async def _spawn(self, val, proc, args, kw):
+    async def _spawn(self, val, proc, args, kw, *,
+            task_status=trio.TASK_STATUS_IGNORED):
         """
         Helper for starting a task.
 
@@ -84,7 +85,7 @@ class Serf(object):
         back to the caller.
         """
         with trio.open_cancel_scope() as scope:
-            val.set(scope)
+            task_status.started(scope)
             await proc(*args, **kw)
 
     async def spawn(self, proc, *args, **kw):
@@ -94,9 +95,7 @@ class Serf(object):
         Returns:
           a cancel scope you can use to stop the task.
         """
-        val = ValueEvent()
-        await self.tg.spawn(self._spawn, val, proc, args, kw)
-        return await val.get()
+        return await self.tg.start(self._spawn, val, proc, args, kw)
 
     async def cancel(self):
         """
@@ -142,7 +141,7 @@ class Serf(object):
             >>> async with trio.open_nursery() as tg:
             >>>     async with client.stream("query") as stream:
             >>>         async for event in stream:
-            >>>             await tg.spawn(in_tg, event)
+            >>>             tg.start_soon(in_tg, event)
 
         """
         if isinstance(event_types, list):

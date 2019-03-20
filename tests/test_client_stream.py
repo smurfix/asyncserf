@@ -69,9 +69,9 @@ class TestSerfQuery(object):
                 async with serf_client(codec=UTF8Codec()) as serf2:
                     ev1 = trio.Event()
                     ev2 = trio.Event()
-                    await tg.spawn(self.answer_query, serf2, ev1)
+                    tg.start_soon(self.answer_query, serf2, ev1)
                     await ev1.wait()
-                    await tg.spawn(self.ask_query, serf1, ev2)
+                    tg.start_soon(self.ask_query, serf1, ev2)
                     await ev2.wait()
 
 

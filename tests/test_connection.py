@@ -127,7 +127,7 @@ class TestSerfConnection(object):
         async with rpc_connect() as rpc:
             await rpc.handshake()
 
-            await rpc._socket.close()
+            await rpc._socket.aclose()
 
             # maybe TODO: raises OSError
             with pytest.raises(connection.SerfConnectionError):
