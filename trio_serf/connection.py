@@ -36,13 +36,13 @@ class _StreamReply:
         self.expect_body = -expect_body
 
     async def set(self, value):
-        await self.q_send.put(outcome.Value(value))
+        await self.q_send.send(outcome.Value(value))
 
     async def set_error(self, err):
-        await self.q_send.put(outcome.Error(err))
+        await self.q_send.send(outcome.Error(err))
 
     async def get(self):
-        res = await self.q.get()
+        res = await self.q_recv.receive()
         if res is not None:
             res = res.unwrap()
         return res
@@ -55,7 +55,7 @@ class _StreamReply:
     async def __anext__(self):
         if not self._running:
             raise StopAsyncIteration
-        res = await self.q.get()
+        res = await self.q_recv.receive()
         if res is None:
             raise StopAsyncIteration
         return res.unwrap()
@@ -79,7 +79,7 @@ class _StreamReply:
                     del hdl[self.seq]
 
     async def cancel(self):
-        await self.q.put(None)
+        await self.q_send.aclose()
 
 
 class SerfConnection(object):
