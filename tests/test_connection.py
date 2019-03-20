@@ -113,15 +113,13 @@ class TestSerfConnection:
                 )
 
     @pytest.mark.trio
-    @pytest.mark.xfail
     async def test_connection_closed(self):
         async with rpc_connect() as rpc:
             await rpc.handshake()
 
             await rpc._socket.aclose()
 
-            # maybe TODO: raises OSError
-            with pytest.raises(connection.SerfConnectionError):
+            with pytest.raises(trio.ClosedResourceError):
                 await rpc.handshake()
 
     @pytest.mark.trio
