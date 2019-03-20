@@ -74,7 +74,10 @@ class _StreamReply:
         hdl = self._conn._handlers
         if self.send_stop:
             with trio.CancelScope(shield=True):
-                await self._conn.call("stop", params={b'Stop': self.seq}, expect_body=False)
+                try:
+                    await self._conn.call("stop", params={b'Stop': self.seq}, expect_body=False)
+                except trio.ClosedResourceError:
+                    pass
                 if hdl is not None:
                     # TODO remember this for a while?
                     del hdl[self.seq]
