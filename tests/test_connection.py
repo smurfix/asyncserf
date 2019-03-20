@@ -105,11 +105,12 @@ class TestSerfConnection:
             # Incorrectly set expect_body to True for an event RPC,
             # which will wait around for a body it'll never get,
             # which should cause a SerfTimeout exception.
-            rpc.call(
-                "event",
-                {"Name": "foo", "Payload": "test payload", "Coalesce": True},
-                expect_body=True,
-            )
+            with pytest.raises(connection.SerfTimeout):
+                await rpc.call(
+                    "event",
+                    {"Name": "foo", "Payload": "test payload", "Coalesce": True},
+                    expect_body=True,
+                )
 
     @pytest.mark.trio
     @pytest.mark.xfail

@@ -1,3 +1,4 @@
+import math
 import resource
 import socket
 from logging import getLogger
@@ -15,6 +16,9 @@ logger = getLogger(__name__)
 
 _conn_id = 0
 
+
+class SerfTimeout(TimeoutError):
+    pass
 
 class _StreamReply:
     """
@@ -256,7 +260,15 @@ class SerfConnection:
                     if cur_msg is not None:
                         logger.debug("%d:wait for body", self._conn_id)
                     try:
-                        buf = await self._socket.receive_some(self._socket_recv_size)
+                        with trio.fail_after(5 if cur_msg else math.inf):
+                            buf = await self._socket.receive_some(self._socket_recv_size)
+                    except trio.TooSlowError:
+                        seq = cur_msg.head.get(b'Seq',None)
+                        hdl = self._handlers.get(seq, None)
+                        if hdl is not None:
+                            await hdl.set_error(SerfTimeout(cur_msg))
+                        else:
+                            raise SerfTimeout(cur_msg) from None
                     except trio.ClosedResourceError:
                         return  # closed by us
                     if len(buf) == 0:  # Connection was closed.
