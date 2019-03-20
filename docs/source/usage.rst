@@ -12,7 +12,7 @@ and send requests to it.
 
 Let's consider a basic example::
 
-    import anyio
+    import trio
     from aioserf import serf_client, UTF8Codec
 
     async def main():
@@ -27,7 +27,7 @@ Let's consider a basic example::
                         print("I got me a %s" % (resp,))
 
     if __name__ == "__main__":
-        anyio.run(main)
+        trio.run(main)
 
 This sample is slightly asocial because it indiscriminately responds to all
 queries (and requests all other events even if it doesn't do anythign with
@@ -53,7 +53,7 @@ Thus, let's extend our example with a keepalive transmitter::
 
     async def keepalive(client):
         while True:
-            await anyio.sleep(60)
+            await trio.sleep(60)
             await client.event("keepalive", payload="My example")
 
     async def main():
@@ -74,11 +74,11 @@ let's add that too::
                     elif resp.event == 'user' and resp.name == 'shutdown':
                         break
                     elif keeper is not None and resp.event == 'user' and resp.name == 'quiet':
-                        await keeper.cancel()
+                        keeper.cancel()
                         keeper = None
                     else:
                         print("I got me a %s" % (resp,))
-            await client.cancel()
+            client.cancel()
 
 though in a real, complex system you probably want to open multiple,
 more selective event streams.

@@ -1,6 +1,6 @@
 pytest >= 3.1
 pytest-cov
+pytest-trio
 outcome
-anyio
 trio
 mock

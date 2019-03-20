@@ -2,7 +2,7 @@
 
 # run "serf query example FooBar" to test this
 
-import anyio
+import trio
 from aioserf import serf_client, UTF8Codec
 
 import logging
@@ -21,4 +21,4 @@ async def main():
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    anyio.run(main)
+    trio.run(main)

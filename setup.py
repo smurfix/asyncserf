@@ -46,10 +46,10 @@ setup(
     author_email='matthias@urlichs.de',
     maintainer='Matthias Urlichs',
     maintainer_email='matthias@urlichs.de',
-    keywords=['Serf', 'orchestration', 'service discovery', 'anyio'],
+    keywords=['Serf', 'orchestration', 'service discovery', 'trio'],
     license='MIT',
     packages=['aioserf'],
-    install_requires=['msgpack >= 0.5.0', 'anyio', 'outcome', 'async_generator', 'attrs >= 18.1'],
+    install_requires=['msgpack >= 0.5.0', 'trio >= 0.11', 'outcome', 'async_generator', 'attrs >= 18.1'],
     tests_require=test_requires,
     cmdclass={'test': PyTest},
 )

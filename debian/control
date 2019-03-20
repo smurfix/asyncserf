@@ -9,10 +9,10 @@ Homepage: https://github.com/smurfix/aioserf
 Package: python3-aioserf
 Architecture: all
 Depends: ${misc:Depends}, ${python3:Depends},
-  python3-anyio,
+  python3-trio,
 Description: Python client for the Serf orchestration tool
  AioSerf is an async Python interface to Serf, the decentralised solution
  for service discovery and orchestration.
  .
- It uses anyio, thus should work with asyncio, trio, and curio. Hopefully.
+ It uses trio, not asyncio, to handle concurrency.
 

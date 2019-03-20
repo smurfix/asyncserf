@@ -1,4 +1,4 @@
-import anyio
+import trio
 import pytest
 
 from aioserf import serf_client, UTF8Codec
@@ -10,7 +10,7 @@ class TestAioSerfStream(object):
             assert (await serf.event('foo', 'bar')).head == {b'Error': b'', b'Seq': 1}
             assert (await serf.event('bill', 'gates')).head == {b'Error': b'', b'Seq': 2}
 
-    @pytest.mark.anyio
+    @pytest.mark.trio
     async def test_stream(self):
         async with serf_client(codec=UTF8Codec()) as serf:
             async with serf.stream("user") as response:
@@ -39,7 +39,7 @@ class TestAioSerfStream(object):
 class TestAioSerfQuery(object):
     async def answer_query(self, serf, ev):
         async with serf.stream("query:foo") as s:
-            await ev.set()
+            ev.set()
             async for r in s:
                 assert r.payload == "baz"
                 await r.respond("bar")
@@ -60,15 +60,15 @@ class TestAioSerfQuery(object):
                     assert False, r
         assert reps > 0
         assert acks > 0
-        await ev.set()
+        ev.set()
 
-    @pytest.mark.anyio
+    @pytest.mark.trio
     async def test_query(self):
-        async with anyio.create_task_group() as tg:
+        async with trio.open_nursery() as tg:
             async with serf_client(codec=UTF8Codec()) as serf1:
                 async with serf_client(codec=UTF8Codec()) as serf2:
-                    ev1 = anyio.create_event()
-                    ev2 = anyio.create_event()
+                    ev1 = trio.Event()
+                    ev2 = trio.Event()
                     await tg.spawn(self.answer_query, serf2, ev1)
                     await ev1.wait()
                     await tg.spawn(self.ask_query, serf1, ev2)
@@ -76,13 +76,13 @@ class TestAioSerfQuery(object):
 
 
 class TestAioSerfMonitor(object):
-    @pytest.mark.anyio
+    @pytest.mark.trio
     async def test_sending_a_simple_event(self):
         async with serf_client() as serf:
             assert (await serf.event('foo', 'bar')).head == {b'Error': b'', b'Seq': 1}
             assert (await serf.event('bill', 'gates')).head == {b'Error': b'', b'Seq': 2}
 
-    @pytest.mark.anyio
+    @pytest.mark.trio
     async def test_monitor(self):
         n = 0
         async with serf_client() as serf:

@@ -3,8 +3,7 @@ import msgpack
 import resource
 from async_generator import asynccontextmanager
 from async_generator import async_generator, yield_
-import anyio
-from anyio.exceptions import ClosedResourceError
+import trio
 import outcome
 
 from .result import SerfResult
@@ -34,14 +33,14 @@ class _StreamReply:
         self._command = command
         self._params = params
         self.seq = seq
-        self.q = anyio.create_queue(10000)
+        self.q_send,self.q_recv = trio.open_memory_channel(10000)
         self.expect_body = -expect_body
 
     async def set(self, value):
-        await self.q.put(outcome.Value(value))
+        await self.q_send.put(outcome.Value(value))
 
     async def set_error(self, err):
-        await self.q.put(outcome.Error(err))
+        await self.q_send.put(outcome.Error(err))
 
     async def get(self):
         res = await self.q.get()
@@ -74,7 +73,7 @@ class _StreamReply:
         self._running = False
         hdl = self._conn._handlers
         if self.send_stop:
-            async with anyio.open_cancel_scope(shield=True):
+            async with trio.open_cancel_scope(shield=True):
                 await self._conn.call("stop", params={b'Stop': self.seq}, expect_body=False)
                 if hdl is not None:
                     # TODO remember this for a while?
@@ -152,12 +151,12 @@ class SerfConnection(object):
             async def set(slf, val):
                 if self._handlers is not None:
                     del self._handlers[slf.seq]
-                await super().set(val)
+                super().set(val)
 
             async def set_error(slf, err):
                 if self._handlers is not None:
                     del self._handlers[slf.seq]
-                await super().set_error(err)
+                super().set_error(err)
 
         if self._socket is None:
             return
@@ -222,10 +221,10 @@ class SerfConnection(object):
         if hdl.expect_body < 0:
             hdl.expect_body = -hdl.expect_body
         if msg.head[b'Error']:
-            await hdl.set_error(SerfError(msg))
-            await anyio.sleep(0.01)
+            hdl.set_error(SerfError(msg))
+            await trio.sleep(0.01)
         else:
-            await hdl.set(msg)
+            hdl.set(msg)
         return False
 
     async def _reader(self, scope):
@@ -236,8 +235,8 @@ class SerfConnection(object):
         unpacker = msgpack.Unpacker(object_hook=self._decode_addr_key)
         cur_msg = None
 
-        async with anyio.open_cancel_scope(shield=True) as s:
-            await scope.set(s)
+        with trio.open_cancel_scope(shield=True) as s:
+            scope.set(s)
 
             try:
                 while self._socket is not None:
@@ -245,7 +244,7 @@ class SerfConnection(object):
                         logger.debug("%d:wait for body", self._conn_id)
                     try:
                         buf = await self._socket.receive_some(self._socket_recv_size)
-                    except ClosedResourceError:
+                    except trio.ClosedResourceError:
                         return  # closed by us
                     if len(buf) == 0:  # Connection was closed.
                         raise SerfClosedError("Connection closed by peer")
@@ -264,9 +263,9 @@ class SerfConnection(object):
                                 cur_msg = msg
             finally:
                 hdl, self._handlers = self._handlers, None
-                async with anyio.open_cancel_scope(shield=True):
+                async with trio.open_cancel_scope(shield=True):
                     for m in hdl.values():
-                        await m.cancel()
+                        m.cancel()
 
     async def handshake(self):
         """
@@ -290,7 +289,7 @@ class SerfConnection(object):
         """
         reader = ValueEvent()
         try:
-            async with await anyio.connect_tcp(self.host, self.port) as sock:
+            async with await trio.open_tcp_stream(self.host, self.port) as sock:
                 self._socket = sock
                 await self.tg.spawn(self._reader, reader)
                 reader = await reader.get()
@@ -302,7 +301,7 @@ class SerfConnection(object):
                 await self._socket.close()
                 self._socket = None
             if reader is not None:
-                await reader.cancel()
+                reader.cancel()
                 reader = None
 
     @property

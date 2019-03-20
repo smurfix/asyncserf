@@ -2,7 +2,7 @@
 # async serf client
 # (c) 2018 Matthias Urlichs
 
-import anyio
+import trio
 from .connection import SerfConnection
 from .stream import SerfStream, SerfQuery
 from .codec import NoopCodec
@@ -22,11 +22,11 @@ async def serf_client(**kw):
 
     This is an async context manager.
     """
-    async with anyio.create_task_group() as tg:
+    async with trio.open_nursery() as tg:
         client = AioSerf(tg, **kw)
         async with client._connected():
             await yield_(client)
-            await tg.cancel_scope.cancel()
+            tg.cancel_scope.cancel()
 
 
 class AioSerf(object):
@@ -83,8 +83,8 @@ class AioSerf(object):
         This accepts a :class:`ValueEvent`, to pass the task's cancel scope
         back to the caller.
         """
-        async with anyio.open_cancel_scope() as scope:
-            await val.set(scope)
+        with trio.open_cancel_scope() as scope:
+            val.set(scope)
             await proc(*args, **kw)
 
     async def spawn(self, proc, *args, **kw):
@@ -103,7 +103,7 @@ class AioSerf(object):
         Cancel our internal task group. This should cleanly shut down
         everything.
         """
-        await self.tg.cancel_scope.cancel()
+        self.tg.cancel_scope.cancel()
 
     def stream(self, event_types='*'):
         """
@@ -139,7 +139,7 @@ class AioSerf(object):
             >>> async def in_tg(event):
             >>>     msg = await dispatch(event.type)(event.payload)
             >>>     await event.respond(msg)
-            >>> async with anyio.create_task_group() as tg:
+            >>> async with trio.open_nursery() as tg:
             >>>     async with client.stream("query") as stream:
             >>>         async for event in stream:
             >>>             await tg.spawn(in_tg, event)

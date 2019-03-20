@@ -5,7 +5,7 @@
 # in excess of 2^32. (2^64 fails because MsgPack cannot encode integers
 # that large than that. 2^63 works, but your code won't get that far.)
 
-import anyio
+import trio
 from aioserf import serf_client
 import sys
 
@@ -23,11 +23,11 @@ async def main():
         for i in range(10):
             await client.spawn(foo, client)
             while True:
-                await anyio.sleep(1)
+                await trio.sleep(1)
                 print(client._conn._seq - 2**63, end=" \r")
                 sys.stdout.flush()
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.WARNING)
-    anyio.run(main)
+    trio.run(main)

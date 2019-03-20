@@ -3,8 +3,7 @@
 import attr
 import outcome
 
-import anyio
-from anyio.exceptions import CancelledError
+import trio
 
 
 @attr.s
@@ -22,35 +21,35 @@ class ValueEvent:
     Note that the value can only be read once.
     """
 
-    event = attr.ib(factory=anyio.create_event, init=False)
+    event = attr.ib(factory=trio.Event, init=False)
     value = attr.ib(default=None, init=False)
     scope = attr.ib(default=None, init=True)
 
-    async def set(self, value):
+    def set(self, value):
         """Set the result to return this value, and wake any waiting task.
         """
         self.value = outcome.Value(value)
-        await self.event.set()
+        self.event.set()
 
-    async def set_error(self, exc):
+    def set_error(self, exc):
         """Set the result to raise this exceptio, and wake any waiting task.
         """
         self.value = outcome.Error(exc)
-        await self.event.set()
+        self.event.set()
 
     def is_set(self):
         """Check whether the event has occurred.
         """
         return self.value is not None
 
-    async def cancel(self):
+    def cancel(self):
         """Send a cancelation to the recipient.
 
         TODO: Trio can't do that cleanly.
         """
         if self.scope is not None:
-            await self.scope.cancel()
-        return await self.set_error(CancelledError())
+            self.scope.cancel()
+        return self.set_error(CancelledError())
 
     async def get(self):
         """Block until the value is set.
