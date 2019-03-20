@@ -46,7 +46,7 @@ setup(
     maintainer_email="matthias@urlichs.de",
     keywords=["Serf", "orchestration", "service discovery", "trio"],
     license="MIT",
-    packages=["trio-serf"],
+    packages=["trio_serf"],
     install_requires=[
         "msgpack >= 0.5.0",
         "trio >= 0.11",
