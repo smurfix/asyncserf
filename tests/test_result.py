@@ -2,8 +2,9 @@ import pytest
 
 from trio_serf import result
 
+# pylint: disable=no-self-use
 
-class TestSerfResult(object):
+class TestSerfResult:
     @pytest.fixture
     def head_and_body_result(self):
         return result.SerfResult(head=1, body=2)

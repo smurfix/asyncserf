@@ -6,6 +6,7 @@ from async_generator import asynccontextmanager
 
 from trio_serf import connection
 
+# pylint: disable=not-async-context-manager,protected-access
 
 def extract_addr(rpc, ip_address, address_family=socket.AF_INET6):
     packed_ip_format = socket.inet_pton(address_family, ip_address)
@@ -21,7 +22,7 @@ async def rpc_connect(**kw):
             yield conn
 
 
-class TestSerfConnection(object):
+class TestSerfConnection:
     """
     Tests for the Serf RPC communication object.
     """
@@ -96,21 +97,19 @@ class TestSerfConnection(object):
             assert b"Members" in result.body.keys()
 
     @pytest.mark.trio
-    @pytest.mark.xfail
     async def test_rpc_timeout(self):
         async with rpc_connect() as rpc:
             # Avoid delaying the test too much.
             rpc.timeout = 0.1
             await rpc.handshake()
-            with pytest.raises(connection.SerfTimeout):
-                # Incorrectly set expect_body to True for an event RPC,
-                # which will wait around for a body it'll never get,
-                # which should cause a SerfTimeout exception.
-                rpc.call(
-                    "event",
-                    {"Name": "foo", "Payload": "test payload", "Coalesce": True},
-                    expect_body=True,
-                )
+            # Incorrectly set expect_body to True for an event RPC,
+            # which will wait around for a body it'll never get,
+            # which should cause a SerfTimeout exception.
+            rpc.call(
+                "event",
+                {"Name": "foo", "Payload": "test payload", "Coalesce": True},
+                expect_body=True,
+            )
 
     @pytest.mark.trio
     @pytest.mark.xfail

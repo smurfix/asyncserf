@@ -19,6 +19,7 @@ def test_serf_rpc_addr(os_getenv):
     def fake_os_getenv(key, default=None):
         if key == "SERF_RPC_ADDR":
             return "serf.company.com:6464"
+        return None
 
     os_getenv.side_effect = fake_os_getenv
 
@@ -34,6 +35,7 @@ def test_serf_rpc_auth(os_getenv):
     def fake_os_getenv(key, default=None):
         if key == "SERF_RPC_AUTH":
             return "secret"
+        return None
 
     os_getenv.side_effect = fake_os_getenv
 

@@ -3,8 +3,9 @@ import trio
 
 from trio_serf import UTF8Codec, serf_client
 
+# pylint: disable=not-async-context-manager,protected-access
 
-class TestSerfStream(object):
+class TestSerfStream:
     async def send_data(self):
         async with serf_client() as serf:
             assert (await serf.event("foo", "bar")).head == {b"Error": b"", b"Seq": 1}
@@ -35,7 +36,7 @@ class TestSerfStream(object):
                 assert res[1] == expected[1]
 
 
-class TestSerfQuery(object):
+class TestSerfQuery:
     async def answer_query(self, serf, ev):
         async with serf.stream("query:foo") as s:
             ev.set()
@@ -74,7 +75,7 @@ class TestSerfQuery(object):
                     await ev2.wait()
 
 
-class TestSerfMonitor(object):
+class TestSerfMonitor:
     @pytest.mark.trio
     async def test_sending_a_simple_event(self):
         async with serf_client() as serf:
