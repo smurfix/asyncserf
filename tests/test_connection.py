@@ -50,7 +50,7 @@ class TestSerfConnection(object):
         with pytest.raises(connection.SerfConnectionError) as exceptionInfo:
             async with rpc_connect(port=40000):
                 pass
-        assert isinstance(exceptionInfo.value.__cause__, ConnectionRefusedError)
+        assert isinstance(exceptionInfo.value.__cause__, OSError)
 
     @pytest.mark.trio
     async def test_handshake_to_serf_agent(self):
