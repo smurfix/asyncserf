@@ -12,6 +12,7 @@ class SerfConnectionError(SerfError):
     """
 
     def __init__(self, host, port):
+        super().__init__()
         self.host = host
         self.port = port
 

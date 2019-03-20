@@ -24,6 +24,7 @@ class SerfStream:
     """
 
     _it = None
+    _ctx = None
 
     def __init__(self, client, stream):
         self.client = client
@@ -49,7 +50,7 @@ class SerfStream:
             raise
         else:
             res = SerfEvent(self.client)
-            res._set(r.body, self.client.codec)
+            res._set(r.body, self.client.codec)  ## pylint: disable=protected-access
             return res
 
     @property
@@ -97,6 +98,7 @@ class SerfQuery(SerfStream):
         res = await super().__anext__()
         if res.type == "done":
             try:
+                # pylint: disable=protected-access
                 del self.client._conn._handlers[self.stream.seq]
             except AttributeError:
                 # either the connection or the handlers is `None`, thus

@@ -11,10 +11,12 @@ class NoopCodec:
     Your payload needs to consist of bytes.
     """
 
-    def encode(self, data):
+    @staticmethod
+    def encode(data):
         return data
 
-    def decode(self, data):
+    @staticmethod
+    def decode(data):
         return data
 
 
@@ -26,10 +28,12 @@ class UTF8Codec:
     This codec will *not* stringify other data types for you.
     """
 
-    def encode(self, data):
+    @staticmethod
+    def encode(data):
         return data.encode("utf-8")
 
-    def decode(self, data):
+    @staticmethod
+    def decode(data):
         return data.decode("utf-8")
 
 

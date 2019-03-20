@@ -1,7 +1,7 @@
 # simple result class
 
 
-class SerfResult(object):
+class SerfResult:
     """
     Result object for responses from a Serf agent.
     """

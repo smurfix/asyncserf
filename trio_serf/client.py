@@ -8,7 +8,6 @@ from async_generator import asynccontextmanager
 from .codec import NoopCodec
 from .connection import SerfConnection
 from .stream import SerfQuery, SerfStream
-from .util import ValueEvent
 
 
 @asynccontextmanager
@@ -23,12 +22,12 @@ async def serf_client(**kw):
     """
     async with trio.open_nursery() as tg:
         client = Serf(tg, **kw)
-        async with client._connected():
+        async with client._connected():  # pylint: disable=not-async-context-manager,protected-access
             yield client
             tg.cancel_scope.cancel()
 
 
-class Serf(object):
+class Serf:
     """
     The main adapter.
 
@@ -46,7 +45,9 @@ class Serf(object):
             pass  # work with 'client'
     """
 
-    def __init__(self, tg, host="localhost", port=7373, rpc_auth=None, codec=None):
+    _conn = None
+
+    def __init__(self, tg, host="localhost", port=7373, rpc_auth=None, codec=None):  # pylint: disable=too-many-arguments
         self.tg = tg
         self.host = host
         self.port = port
@@ -64,7 +65,8 @@ class Serf(object):
         """
         self._conn = SerfConnection(self.tg, host=self.host, port=self.port)
         try:
-            async with self._conn._connected():
+            # pylint: disable=protected-access
+            async with self._conn._connected():  # pylint: disable=not-async-context-manager
                 await self._conn.handshake()
                 if self.rpc_auth:
                     await self._conn.auth(self.rpc_auth)
@@ -77,7 +79,7 @@ class Serf(object):
                 self._conn = None
 
     async def _spawn(
-        self, val, proc, args, kw, *, task_status=trio.TASK_STATUS_IGNORED
+        self, proc, args, kw, *, task_status=trio.TASK_STATUS_IGNORED
     ):
         """
         Helper for starting a task.
@@ -96,7 +98,7 @@ class Serf(object):
         Returns:
           a cancel scope you can use to stop the task.
         """
-        return await self.tg.start(self._spawn, val, proc, args, kw)
+        return await self.tg.start(self._spawn, proc, args, kw)
 
     async def cancel(self):
         """
@@ -291,7 +293,7 @@ class Serf(object):
             tags["DeleteTags"] = deleted
         return self._conn.call("tags", tags)
 
-    def leave(self, name):
+    def leave(self):
         """
         Terminate the Serf instance you're connected to.
 

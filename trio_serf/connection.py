@@ -25,9 +25,11 @@ class _StreamReply:
 
     This is an internal class. See :meth:`Serf.stream` for details.
     """
+    # pylint: disable=protected-access,too-many-instance-attributes,too-many-arguments
 
     _running = False
     send_stop = True
+    head = None
 
     def __init__(self, conn, command, params, seq, expect_body):
         self._conn = conn
@@ -90,13 +92,14 @@ class _StreamReply:
         await self.q_send.aclose()
 
 
-class SerfConnection(object):
+class SerfConnection:
     """
     Manages RPC communication to and from a Serf agent.
 
     This is an internal class; see :class:`trio_serf.Serf` for methods
     you're supposed to call. ;-)
     """
+    # pylint: disable=too-many-instance-attributes
 
     # Read from the RPC socket in blocks of this many bytes.
     # (Typically 4k)
@@ -104,9 +107,8 @@ class SerfConnection(object):
     _conn_id = 0
 
     def __init__(self, tg, host="localhost", port=7373):
-        global _conn_id
-        _conn_id += 1
-        self._conn_id = _conn_id
+        type(self)._conn_id += 1
+        self._conn_id = type(self)._conn_id
         self.tg = tg
         self.host = host
         self.port = port
@@ -146,8 +148,10 @@ class SerfConnection(object):
         Returns the reply object. If the connection is being torn down and
         no reply is explected, return ``None``.
         """
+        # pylint: disable=protected-access ## owch
 
         class SingleReply(ValueEvent):
+            # pylint: disable=protected-access,no-self-argument
             """
             A helper class, used to process a single reply.
             """
@@ -157,12 +161,12 @@ class SerfConnection(object):
                 slf.seq = seq
                 slf.expect_body = expect_body
 
-            async def set(slf, val):
+            async def set(slf, val):  # pylint: disable=arguments-differ
                 if self._handlers is not None:
                     del self._handlers[slf.seq]
                 super().set(val)
 
-            async def set_error(slf, err):
+            async def set_error(slf, err):  # pylint: disable=arguments-differ
                 if self._handlers is not None:
                     del self._handlers[slf.seq]
                 super().set_error(err)
@@ -188,7 +192,7 @@ class SerfConnection(object):
         if params is not None:
             msg += msgpack.packb(params)
 
-        async with self._send_lock:
+        async with self._send_lock:  ## pylint: disable=not-async-context-manager  ## owch
             await self._socket.send_all(msg)
 
         return _reply
@@ -211,7 +215,7 @@ class SerfConnection(object):
         method again.
         """
         if self._handlers is None:
-            logger.warn("Message without handlers:%s", msg)
+            logger.warning("Message without handlers:%s", msg)
             return
         try:
             seq = msg.head[b"Seq"]
@@ -220,7 +224,7 @@ class SerfConnection(object):
         try:
             hdl = self._handlers[seq]
         except KeyError:
-            logger.warn("Spurious message %s: %s", seq, msg)
+            logger.warning("Spurious message %s: %s", seq, msg)
             return
 
         if (
@@ -324,7 +328,8 @@ class SerfConnection(object):
         self._seq += 1
         return current
 
-    def _decode_addr_key(self, obj_dict):
+    @staticmethod
+    def _decode_addr_key(obj_dict):
         """
         Callback function to handle the decoding of the 'Addr' field.
 

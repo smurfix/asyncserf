@@ -1,7 +1,7 @@
 import os
 
 
-class EnvironmentConfig(object):
+class EnvironmentConfig:
     """
     Reads environment variables that Serf understands and parses
     them into a easily consumable object.
@@ -17,6 +17,7 @@ class EnvironmentConfig(object):
      - port
      - auth_key
     """
+    # pylint: disable=too-few-public-methods
 
     def __init__(self):
         self.host = "localhost"
