@@ -2,7 +2,6 @@
 
 set -ex
 
-YAPF_VERSION=0.22.0
 OS=linux
 
 if [ "$TRAVIS_OS_NAME" = "osx" ]; then
@@ -56,16 +55,17 @@ fi
 pip install -U pip setuptools wheel
 
 if [ "$CHECK_FORMATTING" = "1" ]; then
-    pip install yapf==${YAPF_VERSION}
-    if ! yapf -rpd setup.py trio_serf; then
+    pip install black
+    if ! black --check setup.py trio_serf; then
+        black --diff setup.py trio_serf
         cat <<EOF
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 Formatting problems were found (listed above). To fix them, run
 
-   pip install yapf==${YAPF_VERSION}
-   yapf -rpi setup.py trio_serf
+   pip install black
+   black --diff setup.py trio_serf
 
 in your local checkout.
 
