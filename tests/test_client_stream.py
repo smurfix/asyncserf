@@ -5,6 +5,7 @@ from trio_serf import UTF8Codec, serf_client
 
 # pylint: disable=not-async-context-manager,protected-access
 
+
 class TestSerfStream:
     async def send_data(self):
         async with serf_client() as serf:

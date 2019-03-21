@@ -7,6 +7,7 @@ from trio_serf import SerfError, serf_client
 
 # pylint: disable=not-async-context-manager,protected-access
 
+
 class TestSerfCommands:
     """
     Common commands for the library

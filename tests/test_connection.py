@@ -8,6 +8,7 @@ from trio_serf import connection
 
 # pylint: disable=not-async-context-manager,protected-access
 
+
 def extract_addr(rpc, ip_address, address_family=socket.AF_INET6):
     packed_ip_format = socket.inet_pton(address_family, ip_address)
     r = rpc._decode_addr_key({b"Addr": packed_ip_format})

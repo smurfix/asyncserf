@@ -20,6 +20,7 @@ _conn_id = 0
 class SerfTimeout(TimeoutError):
     pass
 
+
 class _StreamReply:
     """
     This class represents a multi-message reply.
@@ -29,6 +30,7 @@ class _StreamReply:
 
     This is an internal class. See :meth:`Serf.stream` for details.
     """
+
     # pylint: disable=protected-access,too-many-instance-attributes,too-many-arguments
 
     send_stop = True
@@ -99,6 +101,7 @@ class SerfConnection:
     This is an internal class; see :class:`trio_serf.Serf` for methods
     you're supposed to call. ;-)
     """
+
     # pylint: disable=too-many-instance-attributes
 
     # Read from the RPC socket in blocks of this many bytes.
@@ -261,9 +264,11 @@ class SerfConnection:
                         logger.debug("%d:wait for body", self._conn_id)
                     try:
                         with trio.fail_after(5 if cur_msg else math.inf):
-                            buf = await self._socket.receive_some(self._socket_recv_size)
+                            buf = await self._socket.receive_some(
+                                self._socket_recv_size
+                            )
                     except trio.TooSlowError:
-                        seq = cur_msg.head.get(b'Seq',None)
+                        seq = cur_msg.head.get(b"Seq", None)
                         hdl = self._handlers.get(seq, None)
                         if hdl is not None:
                             await hdl.set_error(SerfTimeout(cur_msg))

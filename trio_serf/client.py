@@ -47,7 +47,9 @@ class Serf:
 
     _conn = None
 
-    def __init__(self, tg, host="localhost", port=7373, rpc_auth=None, codec=None):  # pylint: disable=too-many-arguments
+    def __init__(
+        self, tg, host="localhost", port=7373, rpc_auth=None, codec=None
+    ):  # pylint: disable=too-many-arguments
         self.tg = tg
         self.host = host
         self.port = port
@@ -78,9 +80,7 @@ class Serf:
             finally:
                 self._conn = None
 
-    async def _spawn(
-        self, proc, args, kw, *, task_status=trio.TASK_STATUS_IGNORED
-    ):
+    async def _spawn(self, proc, args, kw, *, task_status=trio.TASK_STATUS_IGNORED):
         """
         Helper for starting a task.
 

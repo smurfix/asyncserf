@@ -17,6 +17,7 @@ class EnvironmentConfig:
      - port
      - auth_key
     """
+
     # pylint: disable=too-few-public-methods
 
     def __init__(self):

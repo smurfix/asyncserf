@@ -4,6 +4,7 @@ from trio_serf import result
 
 # pylint: disable=no-self-use
 
+
 class TestSerfResult:
     @pytest.fixture
     def head_and_body_result(self):
