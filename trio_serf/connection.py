@@ -196,6 +196,8 @@ class SerfConnection:
             msg += msgpack.packb(params)
 
         async with self._send_lock:  ## pylint: disable=not-async-context-manager  ## owch
+            if self._socket is None:
+                raise trio.ClosedResourceError()
             await self._socket.send_all(msg)
 
         return _reply
