@@ -1,18 +1,18 @@
-Source: trio-serf
+Source: asyncserf
 Maintainer: Matthias Urlichs <matthias@urlichs.de>
 Section: python
 Priority: optional
 Build-Depends: dh-python, python3-setuptools, python3-all, debhelper (>= 9)
 Standards-Version: 3.9.6
-Homepage: https://github.com/smurfix/trio-serf
+Homepage: https://github.com/smurfix/asyncserf
 
-Package: python3-trio-serf
+Package: python3-asyncserf
 Architecture: all
 Depends: ${misc:Depends}, ${python3:Depends},
   python3-trio,
 Description: Python client for the Serf orchestration tool
- Trio-Serf is an async Python interface to Serf, the decentralised solution
+ AsyncSerf is an async Python interface to Serf, the decentralised solution
  for service discovery and orchestration.
  .
- It uses trio, not asyncio, to handle concurrency.
+ It uses anyio to handle concurrency, thus works with asyncio, trio, and curio.
 

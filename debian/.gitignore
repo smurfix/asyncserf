@@ -3,4 +3,4 @@
 /*.debhelper
 /*.substvars
 /debhelper-build-stamp
-/python3-trio-serf
+/python3-asyncserf

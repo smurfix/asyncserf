@@ -1,7 +1,7 @@
-trio-serf
+asyncserf
 =========
 
-trio-serf is an async Python interface to Serf, the decentralised solution
+asyncserf is an async Python interface to Serf, the decentralised solution
 for service discovery and orchestration.
 
 It uses `trio <https://github.com/python-trio/trio>` as its underlying
@@ -10,30 +10,30 @@ async framework. Previous versions used the `anyio
 ``trio``, and ``curio``, but this has been discontinued because of issues
 with error handling.
 
-.. image:: https://badge.fury.io/py/trio-serf.svg
+.. image:: https://badge.fury.io/py/asyncserf.svg
     :alt: PyPI latest version badge
-    :target: https://pypi.python.org/pypi/trio-serf
-.. image:: https://coveralls.io/repos/smurfix/trio-serf/badge.png?branch=master
+    :target: https://pypi.python.org/pypi/asyncserf
+.. image:: https://coveralls.io/repos/smurfix/asyncserf/badge.png?branch=master
     :alt: Code coverage badge
-    :target: https://coveralls.io/r/smurfix/trio-serf?branch=master
+    :target: https://coveralls.io/r/smurfix/asyncserf?branch=master
 
 Installation
 ------------
 
-trio-serf requires a running Serf agent. See `Serf's agent documentation
+asyncserf requires a running Serf agent. See `Serf's agent documentation
 <http://www.serfdom.io/docs/agent/basics.html>`_ for instructions.
 
-To install trio-serf, run the following command:
+To install asyncserf, run the following command:
 
 .. code-block:: bash
 
-    $ pip install trio-serf
+    $ pip install asyncserf
 
 or alternatively (you really should be using pip though):
 
 .. code-block:: bash
 
-    $ easy_install trio-serf
+    $ easy_install asyncserf
 
 or from source:
 

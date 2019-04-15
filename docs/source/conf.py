@@ -71,7 +71,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'trio-serf'
+project = 'asyncserf'
 copyright = '© 2018, Matthias Urlichs'
 author = 'Matthias Urlichs'
 
@@ -142,7 +142,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'trio-serf-doc'
+htmlhelp_basename = 'asyncserf-doc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -168,14 +168,14 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'trio-serf.tex', 'Trio-Serf Documentation', author, 'manual'),
+    (master_doc, 'asyncserf.tex', 'AsyncSerf Documentation', author, 'manual'),
 ]
 
 # -- Options for manual page output ---------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, 'trio_serf', 'Trio-Serf Documentation', [author], 1)]
+man_pages = [(master_doc, 'trio_serf', 'AsyncSerf Documentation', [author], 1)]
 
 # -- Options for Texinfo output -------------------------------------------
 
@@ -184,7 +184,7 @@ man_pages = [(master_doc, 'trio_serf', 'Trio-Serf Documentation', [author], 1)]
 #  dir menu entry, description, category)
 texinfo_documents = [
     (
-        master_doc, 'trio_serf', 'Trio-Serf Documentation', author, 'trio-serf',
+        master_doc, 'trio_serf', 'AsyncSerf Documentation', author, 'asyncserf',
         'An async RPC interface (using trio) to Serf', 'Miscellaneous'
     ),
 ]

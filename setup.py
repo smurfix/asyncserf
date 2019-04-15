@@ -39,7 +39,7 @@ setup(
     setup_requires=["setuptools_scm"],
     description="Python client for the Serf orchestration tool",
     long_description=long_description,
-    url="https://github.com/smurfix/trio-serf",
+    url="https://github.com/smurfix/asyncserf",
     author="Matthias Urlichs",
     author_email="matthias@urlichs.de",
     maintainer="Matthias Urlichs",
