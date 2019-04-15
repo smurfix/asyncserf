@@ -2,7 +2,7 @@
 # async serf client
 # (c) 2018 Matthias Urlichs
 
-import trio
+import anyio
 from async_generator import asynccontextmanager
 
 from .codec import NoopCodec
@@ -20,11 +20,11 @@ async def serf_client(**kw):
 
     This is an async context manager.
     """
-    async with trio.open_nursery() as tg:
+    async with anyio.create_task_group() as tg:
         client = Serf(tg, **kw)
         async with client._connected():  # pylint: disable=not-async-context-manager,protected-access
             yield client
-            tg.cancel_scope.cancel()
+            await tg.cancel_scope.cancel()
 
 
 class Serf:
@@ -80,15 +80,16 @@ class Serf:
             finally:
                 self._conn = None
 
-    async def _spawn(self, proc, args, kw, *, task_status=trio.TASK_STATUS_IGNORED):
+    async def _spawn(self, proc, args, kw, *, result=None):
         """
         Helper for starting a task.
 
         This accepts a :class:`ValueEvent`, to pass the task's cancel scope
         back to the caller.
         """
-        with trio.CancelScope() as scope:
-            task_status.started(scope)
+        with anyio.open_cancel_scope() as scope:
+            if result is not None:
+                await result.set(scope)
             await proc(*args, **kw)
 
     async def spawn(self, proc, *args, **kw):
@@ -98,14 +99,14 @@ class Serf:
         Returns:
           a cancel scope you can use to stop the task.
         """
-        return await self.tg.start(self._spawn, proc, args, kw)
+        return await self.tg.spawn(self._spawn, proc, args, kw)
 
     async def cancel(self):
         """
         Cancel our internal task group. This should cleanly shut down
         everything.
         """
-        self.tg.cancel_scope.cancel()
+        await self.tg.cancel_scope.cancel()
 
     def stream(self, event_types="*"):
         """
@@ -141,10 +142,10 @@ class Serf:
             >>> async def in_tg(event):
             >>>     msg = await dispatch(event.type)(event.payload)
             >>>     await event.respond(msg)
-            >>> async with trio.open_nursery() as tg:
+            >>> async with anyio.create_task_group() as tg:
             >>>     async with client.stream("query") as stream:
             >>>         async for event in stream:
-            >>>             tg.start_soon(in_tg, event)
+            >>>             await tg.spawn(in_tg, event)
 
         """
         if isinstance(event_types, list):

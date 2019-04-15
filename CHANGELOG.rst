@@ -1,8 +1,13 @@
 Changelog
 =========
 
-trio-serf
+asyncserf
 +++++++++
+
+0.2.0
+-----
+
+- moved to anyio
 
 0.1.0
 -----

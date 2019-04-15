@@ -8,7 +8,7 @@
 import logging
 import sys
 
-import trio
+import anyio
 
 from asyncserf import serf_client
 
@@ -26,11 +26,11 @@ async def main():
         for _ in range(10):
             await client.spawn(foo, client)
             while True:
-                await trio.sleep(1)
+                await anyio.sleep(1)
                 print(client._conn._seq - 2 ** 63, end=" \r")
                 sys.stdout.flush()
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.WARNING)
-    trio.run(main)
+    anyio.run(main)

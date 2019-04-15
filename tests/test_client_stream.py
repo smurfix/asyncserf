@@ -1,5 +1,5 @@
 import pytest
-import trio
+import anyio
 
 from asyncserf import UTF8Codec, serf_client
 
@@ -15,7 +15,7 @@ class TestSerfStream:
                 b"Seq": 2,
             }
 
-    @pytest.mark.trio
+    @pytest.mark.anyio
     async def test_stream(self):
         async with serf_client(codec=UTF8Codec()) as serf:
             async with serf.stream("user") as response:
@@ -40,7 +40,7 @@ class TestSerfStream:
 class TestSerfQuery:
     async def answer_query(self, serf, ev):
         async with serf.stream("query:foo") as s:
-            ev.set()
+            await ev.set()
             async for r in s:
                 assert r.payload == "baz"
                 await r.respond("bar")
@@ -61,23 +61,23 @@ class TestSerfQuery:
                     assert False, r
         assert reps > 0
         assert acks > 0
-        ev.set()
+        await ev.set()
 
-    @pytest.mark.trio
+    @pytest.mark.anyio
     async def test_query(self):
-        async with trio.open_nursery() as tg:
+        async with anyio.create_task_group() as tg:
             async with serf_client(codec=UTF8Codec()) as serf1:
                 async with serf_client(codec=UTF8Codec()) as serf2:
-                    ev1 = trio.Event()
-                    ev2 = trio.Event()
-                    tg.start_soon(self.answer_query, serf2, ev1)
+                    ev1 = anyio.create_event()
+                    ev2 = anyio.create_event()
+                    await tg.spawn(self.answer_query, serf2, ev1)
                     await ev1.wait()
-                    tg.start_soon(self.ask_query, serf1, ev2)
+                    await tg.spawn(self.ask_query, serf1, ev2)
                     await ev2.wait()
 
 
 class TestSerfMonitor:
-    @pytest.mark.trio
+    @pytest.mark.anyio
     async def test_sending_a_simple_event(self):
         async with serf_client() as serf:
             assert (await serf.event("foo", "bar")).head == {b"Error": b"", b"Seq": 1}
@@ -86,7 +86,7 @@ class TestSerfMonitor:
                 b"Seq": 2,
             }
 
-    @pytest.mark.trio
+    @pytest.mark.anyio
     async def test_monitor(self):
         n = 0
         async with serf_client() as serf:

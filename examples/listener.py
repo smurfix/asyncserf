@@ -4,7 +4,7 @@
 
 import logging
 
-import trio
+import anyio
 
 from asyncserf import UTF8Codec, serf_client
 
@@ -24,4 +24,4 @@ async def main():
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    trio.run(main)
+    anyio.run(main)

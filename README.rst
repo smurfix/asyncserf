@@ -4,11 +4,8 @@ asyncserf
 asyncserf is an async Python interface to Serf, the decentralised solution
 for service discovery and orchestration.
 
-It uses `trio <https://github.com/python-trio/trio>` as its underlying
-async framework. Previous versions used the `anyio
-<https://github.com/agronholm/anyio>` wrapper, thus worked with ``asyncio``,
-``trio``, and ``curio``, but this has been discontinued because of issues
-with error handling.
+It uses `anyio <https://github.com/agronholm/anyio>` as its underlying
+async framework.
 
 .. image:: https://badge.fury.io/py/asyncserf.svg
     :alt: PyPI latest version badge

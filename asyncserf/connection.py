@@ -5,7 +5,7 @@ from logging import getLogger
 
 import msgpack
 import outcome
-import trio
+import anyio
 from async_generator import asynccontextmanager
 
 from .exceptions import SerfClosedError, SerfConnectionError, SerfError
@@ -41,26 +41,27 @@ class _StreamReply:
         self._command = command
         self._params = params
         self.seq = seq
-        self.q_send, self.q_recv = trio.open_memory_channel(10000)
+        self._q = anyio.create_queue(10000)
         self.expect_body = -expect_body
 
     async def set(self, value):
-        await self.q_send.send(outcome.Value(value))
+        await self._q.put(outcome.Value(value))
 
     async def set_error(self, err):
-        await self.q_send.send(outcome.Error(err))
+        await self._q.put(outcome.Error(err))
 
     async def get(self):
-        res = await self.q_recv.receive()
+        res = await self._q.get()
         return res.unwrap()
 
     def __aiter__(self):
         return self
 
     async def __anext__(self):
-        try:
-            res = await self.q_recv.receive()
-        except trio.EndOfChannel:
+        if self._q is None:
+            raise StopAsyncIteration
+        res = await self._q.get()
+        if res is None:
             raise StopAsyncIteration
         return res.unwrap()
 
@@ -74,24 +75,26 @@ class _StreamReply:
     async def __aexit__(self, *exc):
         hdl = self._conn._handlers
         if self.send_stop:
-            with trio.CancelScope(shield=True):
+            async with anyio.open_cancel_scope(shield=True):
                 try:
                     await self._conn.call(
                         "stop", params={b"Stop": self.seq}, expect_body=False
                     )
-                except trio.ClosedResourceError:
+                except anyio.ClosedResourceError:
                     pass
                 if hdl is not None:
                     # TODO remember this for a while?
-                    await self._conn.tg.start(self._cleanup, hdl)
+                    await self._conn.tg.spawn(self._cleanup, hdl)
 
-    async def _cleanup(self, hdl, task_status=trio.TASK_STATUS_IGNORED):
-        task_status.started()
-        await trio.sleep(2)
+    async def _cleanup(self, hdl, *, result=None):
+        if result is not None:
+            await result.set()
+        await anyio.sleep(2)
         del hdl[self.seq]
 
     async def cancel(self):
-        await self.q_send.aclose()
+        await self._q.put(None)
+        self._q = None
 
 
 class SerfConnection:
@@ -118,7 +121,7 @@ class SerfConnection:
         self._socket = None
         self._seq = 0
         self._handlers = {}
-        self._send_lock = trio.Lock()
+        self._send_lock = anyio.create_lock()
 
     # handler protocol: incoming messages are passed in using `.set`.
     # If .expect_body is True then the reader will add a body to the
@@ -167,12 +170,12 @@ class SerfConnection:
             async def set(slf, val):  # pylint: disable=arguments-differ
                 if self._handlers is not None:
                     del self._handlers[slf.seq]
-                super().set(val)
+                await super().set(val)
 
             async def set_error(slf, err):  # pylint: disable=arguments-differ
                 if self._handlers is not None:
                     del self._handlers[slf.seq]
-                super().set_error(err)
+                await super().set_error(err)
 
         if self._socket is None:
             return
@@ -197,7 +200,7 @@ class SerfConnection:
 
         async with self._send_lock:  ## pylint: disable=not-async-context-manager  ## owch
             if self._socket is None:
-                raise trio.ClosedResourceError()
+                raise anyio.ClosedResourceError()
             await self._socket.send_all(msg)
 
         return _reply
@@ -244,12 +247,12 @@ class SerfConnection:
             hdl.expect_body = -hdl.expect_body
         if msg.head[b"Error"]:
             await hdl.set_error(SerfError(msg))
-            await trio.sleep(0.01)
+            await anyio.sleep(0.01)
         else:
             await hdl.set(msg)
         return False
 
-    async def _reader(self, *, task_status=trio.TASK_STATUS_IGNORED):
+    async def _reader(self, *, result: ValueEvent = None):
         """Main loop for reading
 
         TODO: add a timeout for receiving message bodies.
@@ -257,26 +260,27 @@ class SerfConnection:
         unpacker = msgpack.Unpacker(object_hook=self._decode_addr_key)
         cur_msg = None
 
-        with trio.CancelScope(shield=True) as s:
-            task_status.started(s)
+        async with anyio.open_cancel_scope(shield=True) as s:
+            if result is not None:
+                await result.set(s)
 
             try:
                 while self._socket is not None:
                     if cur_msg is not None:
                         logger.debug("%d:wait for body", self._conn_id)
                     try:
-                        with trio.fail_after(5 if cur_msg else math.inf):
+                        async with anyio.fail_after(5 if cur_msg else math.inf):
                             buf = await self._socket.receive_some(
                                 self._socket_recv_size
                             )
-                    except trio.TooSlowError:
+                    except TimeoutError:
                         seq = cur_msg.head.get(b"Seq", None)
                         hdl = self._handlers.get(seq, None)
                         if hdl is not None:
                             await hdl.set_error(SerfTimeout(cur_msg))
                         else:
                             raise SerfTimeout(cur_msg) from None
-                    except trio.ClosedResourceError:
+                    except anyio.exceptions.ClosedResourceError:
                         return  # closed by us
                     if len(buf) == 0:  # Connection was closed.
                         raise SerfClosedError("Connection closed by peer")
@@ -295,7 +299,7 @@ class SerfConnection:
                                 cur_msg = msg
             finally:
                 hdl, self._handlers = self._handlers, None
-                with trio.CancelScope(shield=True):
+                async with anyio.open_cancel_scope(shield=True):
                     for m in hdl.values():
                         await m.cancel()
 
@@ -320,16 +324,16 @@ class SerfConnection:
         """
         reader = None
         try:
-            async with await trio.open_tcp_stream(self.host, self.port) as sock:
+            async with await anyio.connect_tcp(self.host, self.port) as sock:
                 self._socket = sock
-                reader = await self.tg.start(self._reader)
+                reader = await self.tg.spawn(self._reader)
                 yield self
         except socket.error as e:
             raise SerfConnectionError(self.host, self.port) from e
         finally:
-            if self._socket is not None:
-                await self._socket.aclose()
-                self._socket = None
+            sock, self._socket = self._socket, None
+            if sock is not None:
+                await sock.close()
             if reader is not None:
                 reader.cancel()
                 reader = None

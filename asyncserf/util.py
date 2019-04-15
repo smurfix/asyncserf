@@ -2,7 +2,7 @@
 
 import attr
 import outcome
-import trio
+import anyio
 
 try:
     from concurrent.futures import CancelledError
@@ -27,35 +27,35 @@ class ValueEvent:
     Note that the value can only be read once.
     """
 
-    event = attr.ib(factory=trio.Event, init=False)
+    event = attr.ib(factory=anyio.create_event, init=False)
     value = attr.ib(default=None, init=False)
     scope = attr.ib(default=None, init=True)
 
-    def set(self, value):
+    async def set(self, value):
         """Set the result to return this value, and wake any waiting task.
         """
         self.value = outcome.Value(value)
-        self.event.set()
+        await self.event.set()
 
-    def set_error(self, exc):
+    async def set_error(self, exc):
         """Set the result to raise this exceptio, and wake any waiting task.
         """
         self.value = outcome.Error(exc)
-        self.event.set()
+        await self.event.set()
 
     def is_set(self):
         """Check whether the event has occurred.
         """
         return self.value is not None
 
-    def cancel(self):
+    async def cancel(self):
         """Send a cancelation to the recipient.
 
         TODO: Trio can't do that cleanly.
         """
         if self.scope is not None:
-            self.scope.cancel()
-        return self.set_error(CancelledError())
+            await self.scope.cancel()
+        await self.set_error(CancelledError())
 
     async def get(self):
         """Block until the value is set.

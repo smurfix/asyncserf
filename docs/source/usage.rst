@@ -12,7 +12,7 @@ and send requests to it.
 
 Let's consider a basic example::
 
-    import trio
+    import anyio
     from asyncserf import serf_client, UTF8Codec
 
     async def main():
@@ -27,7 +27,7 @@ Let's consider a basic example::
                         print("I got me a %s" % (resp,))
 
     if __name__ == "__main__":
-        trio.run(main)
+        anyio.run(main)
 
 This sample is slightly asocial because it indiscriminately responds to all
 queries (and requests all other events even if it doesn't do anythign with
@@ -42,10 +42,10 @@ Multiple concurrent requests
 ---
 
 Async code as you know it heavily leans towards throwing requests over your
-interface's wall and then using callbacks to process any replies. Trio-Serf
+interface's wall and then using callbacks to process any replies. AsyncSerf
 doesn't support that. Instead, you start a new task and do your work there.
 The `asyncserf.Serf` class has a :meth:`Serf.spawn` 
-helper method so that you can start your task within Trio-Serf's task group.
+helper method so that you can start your task within AsyncSerf's task group.
 
 .. automethod:: asyncserf.Serf.spawn
 
@@ -53,7 +53,7 @@ Thus, let's extend our example with a keepalive transmitter::
 
     async def keepalive(client):
         while True:
-            await trio.sleep(60)
+            await anyio.sleep(60)
             await client.event("keepalive", payload="My example")
 
     async def main():
@@ -89,7 +89,7 @@ more selective event streams.
 Supported RPC methods
 ---------------------
 
-Trio-Serf aims to support all methods exported by Serf's RPF interface.
+AsyncSerf aims to support all methods exported by Serf's RPF interface.
 
 Streaming
 +++++++++
@@ -137,7 +137,7 @@ old log entries which may deadlock the RPC socket until you read them all.
 Requests
 ++++++++
 
-Trio-Serf contains methods for all remaining RPC methods that Serf offers.
+AsyncSerf contains methods for all remaining RPC methods that Serf offers.
 
 See Serf's `RPC documentation <https://www.serf.io/docs/agent/rpc.html>`
 for details, esp. regarding the values in replies.
@@ -161,7 +161,7 @@ Codecs
 
 Serf's RPC protocol can transport user-specific payloads, which must be
 binary strings. As these are inconvenient and rarely what you need,
-Trio-Serf transparently encodes and decodes them with a user-supplied codec.
+AsyncSerf transparently encodes and decodes them with a user-supplied codec.
 
 The codec needs to have ``encode`` and ``decode`` methods which return /
 accept :class:`bytes`. The default is to do nothing.

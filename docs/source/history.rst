@@ -5,7 +5,7 @@ Release history
 
 .. towncrier release notes start
 
-Trio-Serf 0.2.0 (2018-12-18)
+AsyncSerf 0.2.0 (2018-12-18)
 ----------------------------
 
 Features
