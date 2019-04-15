@@ -6,7 +6,7 @@ import logging
 
 import trio
 
-from trio_serf import UTF8Codec, serf_client
+from asyncserf import UTF8Codec, serf_client
 
 
 async def main():

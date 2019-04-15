@@ -6,7 +6,7 @@ all:
 # need to use python3 sphinx-build
 PATH := /usr/share/sphinx/scripts/python3:${PATH}
 
-PACKAGE = trio_serf
+PACKAGE = asyncserf
 PYTHON ?= python3
 export PYTHONPATH=$(shell pwd)
 
@@ -31,7 +31,7 @@ SPHINXBUILDDIR ?= $(BUILD_DIR)/sphinx/html
 ALLSPHINXOPTS ?= -d $(BUILD_DIR)/sphinx/doctrees $(SPHINXOPTS) docs
 
 check:
-	flake8 trio_serf setup.py tests examples
+	flake8 asyncserf setup.py tests examples
 doc:
 	$(SPHINXBUILD) -a $(INPUT_DIR) $(BUILD_DIR)
 

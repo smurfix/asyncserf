@@ -98,7 +98,7 @@ class SerfConnection:
     """
     Manages RPC communication to and from a Serf agent.
 
-    This is an internal class; see :class:`trio_serf.Serf` for methods
+    This is an internal class; see :class:`asyncserf.Serf` for methods
     you're supposed to call. ;-)
     """
 

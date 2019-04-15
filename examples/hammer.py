@@ -10,7 +10,7 @@ import sys
 
 import trio
 
-from trio_serf import serf_client
+from asyncserf import serf_client
 
 
 async def foo(client):

@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 class SerfStream:
     """
-    An object of this class is returned by :meth:`trio_serf.Serf.stream`.
+    An object of this class is returned by :meth:`asyncserf.Serf.stream`.
     It represents the message stream that's returned by a query which
     returns more than one reply.
 
@@ -69,7 +69,7 @@ class SerfStream:
 
 class SerfQuery(SerfStream):
     """
-    An object of this class is returned by :meth:`trio_serf.Serf.query`.
+    An object of this class is returned by :meth:`asyncserf.Serf.query`.
 
     All you should do with this object is iterate over it with an async
     context::
@@ -117,7 +117,7 @@ class SerfEvent:
 
     The payload (if any) will have been decoded by the client's codec.
     Non-decodable payloads trigger a fatal error. To avoid that, use the
-    :class:`trio_serf.codec.NoopCodec` codec and decode manually.
+    :class:`asyncserf.codec.NoopCodec` codec and decode manually.
     """
 
     id = None

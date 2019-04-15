@@ -1,6 +1,6 @@
 import mock
 
-from trio_serf import EnvironmentConfig
+from asyncserf import EnvironmentConfig
 
 
 @mock.patch("os.getenv")

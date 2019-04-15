@@ -50,7 +50,7 @@ These examples require a running async loop.
 
 .. code-block:: python
 
-    from trio_serf import serf_client
+    from asyncserf import serf_client
 
     async with serf_client() as client:
         await client.event('foo', 'bar')
@@ -59,7 +59,7 @@ Stream usage:
 
 .. code-block:: python
 
-    from trio_serf import serf_client
+    from asyncserf import serf_client
 
     async with serf_client() as client:
         async with client.stream('*') as stream:

@@ -4,7 +4,7 @@ import pytest
 import trio
 from async_generator import asynccontextmanager
 
-from trio_serf import connection
+from asyncserf import connection
 
 # pylint: disable=not-async-context-manager,protected-access
 

@@ -34,7 +34,7 @@ except OSError:
 test_requires = ["pytest >= 2.5.2", "pytest-cov >= 2.3"]
 
 setup(
-    name="trio_serf",
+    name="asyncserf",
     use_scm_version={"version_scheme": "guess-next-dev", "local_scheme": "dirty-tag"},
     setup_requires=["setuptools_scm"],
     description="Python client for the Serf orchestration tool",
@@ -46,7 +46,7 @@ setup(
     maintainer_email="matthias@urlichs.de",
     keywords=["Serf", "orchestration", "service discovery", "trio"],
     license="MIT",
-    packages=["trio_serf"],
+    packages=["asyncserf"],
     install_requires=[
         "msgpack >= 0.5.0",
         "trio >= 0.11",

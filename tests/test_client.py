@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from trio_serf import SerfError, serf_client
+from asyncserf import SerfError, serf_client
 
 
 # pylint: disable=not-async-context-manager,protected-access
@@ -15,7 +15,7 @@ class TestSerfCommands:
 
     #    @pytest.mark.trio
     #    async def test_rpc_auth(self):
-    #        with mock.patch('trio_serf.client.SerfConnection') as mock_serf_connection_class:
+    #        with mock.patch('asyncserf.client.SerfConnection') as mock_serf_connection_class:
     #            mock_serf_connection = mock.MagicMock()
     #            mock_serf_connection_class.return_value = mock_serf_connection
     #            async with serf_client(rpc_auth='secret') as serf:

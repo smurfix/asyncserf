@@ -1,6 +1,6 @@
 import pytest
 
-from trio_serf import result
+from asyncserf import result
 
 # pylint: disable=no-self-use
 

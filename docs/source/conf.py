@@ -80,8 +80,8 @@ author = 'Matthias Urlichs'
 # built documents.
 #
 # The short X.Y version.
-import trio_serf
-version = trio_serf.__version__
+import asyncserf
+version = asyncserf.__version__
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -175,7 +175,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, 'trio_serf', 'AsyncSerf Documentation', [author], 1)]
+man_pages = [(master_doc, 'asyncserf', 'AsyncSerf Documentation', [author], 1)]
 
 # -- Options for Texinfo output -------------------------------------------
 
@@ -184,7 +184,7 @@ man_pages = [(master_doc, 'trio_serf', 'AsyncSerf Documentation', [author], 1)]
 #  dir menu entry, description, category)
 texinfo_documents = [
     (
-        master_doc, 'trio_serf', 'AsyncSerf Documentation', author, 'asyncserf',
+        master_doc, 'asyncserf', 'AsyncSerf Documentation', author, 'asyncserf',
         'An async RPC interface (using trio) to Serf', 'Miscellaneous'
     ),
 ]

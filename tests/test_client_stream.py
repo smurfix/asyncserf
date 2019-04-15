@@ -1,7 +1,7 @@
 import pytest
 import trio
 
-from trio_serf import UTF8Codec, serf_client
+from asyncserf import UTF8Codec, serf_client
 
 # pylint: disable=not-async-context-manager,protected-access
 
