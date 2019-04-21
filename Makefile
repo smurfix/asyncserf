@@ -41,13 +41,14 @@ livehtml: docs
 test:
 	$(PYTEST) $(PACKAGE) $(TEST_OPTIONS)
 
-tag:	
-	./mktag
+tagged:	
+	git describe --tags --exact-match
+	test $$(git ls-files -m | wc -l) = 0
 
-pypi:	tag
+pypi:	tagged
 	python3 setup.py sdist upload
 
 upload: pypi
 	git push --tags
 
-.PHONY: all tag pypi upload test check doc
+.PHONY: all tagged pypi upload test check doc
