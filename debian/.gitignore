@@ -1,6 +1,0 @@
-/files
-/*.log
-/*.debhelper
-/*.substvars
-/debhelper-build-stamp
-/python3-asyncserf
