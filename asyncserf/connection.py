@@ -80,7 +80,7 @@ class _StreamReply:
                     await self._conn.call(
                         "stop", params={b"Stop": self.seq}, expect_body=False
                     )
-                except anyio.ClosedResourceError:
+                except anyio.exceptions.ClosedResourceError:
                     pass
                 if hdl is not None:
                     # TODO remember this for a while?
@@ -200,7 +200,7 @@ class SerfConnection:
 
         async with self._send_lock:  ## pylint: disable=not-async-context-manager  ## owch
             if self._socket is None:
-                raise anyio.ClosedResourceError()
+                raise anyio.exceptions.ClosedResourceError()
             await self._socket.send_all(msg)
 
         return _reply
