@@ -2,6 +2,7 @@ import math
 import resource
 import socket
 from logging import getLogger
+import errno
 
 import msgpack
 import outcome
@@ -282,6 +283,10 @@ class SerfConnection:
                             raise SerfTimeout(cur_msg) from None
                     except anyio.exceptions.ClosedResourceError:
                         return  # closed by us
+                    except OSError as err:
+                        if err.errno == errno.EBADF:
+                            return
+                        raise
                     if len(buf) == 0:  # Connection was closed.
                         raise SerfClosedError("Connection closed by peer")
                     unpacker.feed(buf)
