@@ -87,7 +87,7 @@ class Serf:
         This accepts a :class:`ValueEvent`, to pass the task's cancel scope
         back to the caller.
         """
-        with anyio.open_cancel_scope() as scope:
+        async with anyio.open_cancel_scope() as scope:
             if result is not None:
                 await result.set(scope)
             await proc(*args, **kw)

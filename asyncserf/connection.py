@@ -2,6 +2,7 @@ import math
 import resource
 import socket
 from logging import getLogger
+import errno
 
 import msgpack
 import outcome
@@ -80,7 +81,7 @@ class _StreamReply:
                     await self._conn.call(
                         "stop", params={b"Stop": self.seq}, expect_body=False
                     )
-                except anyio.ClosedResourceError:
+                except anyio.exceptions.ClosedResourceError:
                     pass
                 if hdl is not None:
                     # TODO remember this for a while?
@@ -200,7 +201,7 @@ class SerfConnection:
 
         async with self._send_lock:  ## pylint: disable=not-async-context-manager  ## owch
             if self._socket is None:
-                raise anyio.ClosedResourceError()
+                raise anyio.exceptions.ClosedResourceError()
             await self._socket.send_all(msg)
 
         return _reply
@@ -282,6 +283,10 @@ class SerfConnection:
                             raise SerfTimeout(cur_msg) from None
                     except anyio.exceptions.ClosedResourceError:
                         return  # closed by us
+                    except OSError as err:
+                        if err.errno == errno.EBADF:
+                            return
+                        raise
                     if len(buf) == 0:  # Connection was closed.
                         raise SerfClosedError("Connection closed by peer")
                     unpacker.feed(buf)
