@@ -84,6 +84,9 @@ class NodeList(list):
     >>> n += "a"
     >>> n
     ['a']
+    >>> n += "a"
+    >>> n
+    ['a']
     >>> n += "b"
     >>> n
     ['b', 'a']
@@ -121,8 +124,9 @@ class NodeList(list):
         except ValueError:
             i = -1
         self = type(self)(self.maxlen, self)
-        if i >= 0 and i < len(self)-1:
-            self.pop(i)
+        if i >= 0:
+            if i < len(self)-1:
+                self.pop(i)
             self.pop(-1)
             # alternate solution: replace both with
             # del self[i:]
