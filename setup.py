@@ -31,8 +31,6 @@ try:
 except OSError:
     long_description = None
 
-test_requires = ["pytest >= 2.5.2", "pytest-cov >= 2.3"]
-
 setup(
     name="asyncserf",
     use_scm_version={"version_scheme": "guess-next-dev", "local_scheme": "dirty-tag"},
@@ -54,7 +52,11 @@ setup(
         "async_generator",
         "attrs >= 18.1",
     ],
-    tests_require=test_requires,
+    tests_require=[
+        "pytest >= 2.5.2",
+        "pytest-cov >= 2.3",
+        "trio >= 0.11",
+    ],
     cmdclass={"test": PyTest},
     python_requires=">=3.6",
 )
