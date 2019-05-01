@@ -35,7 +35,7 @@ them), but it's immediately obvious what this code is doing.
 
 .. autofunction: asyncserf.serf_client
 
-.. autoclass: asyncserf.Serf
+.. autoclass: asyncserf.client.Serf
 
 ---
 Multiple concurrent requests
