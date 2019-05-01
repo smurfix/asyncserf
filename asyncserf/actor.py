@@ -4,7 +4,6 @@ from collections import deque
 from random import Random
 import os
 import logging
-from math import exp
 
 from .client import Serf
 
@@ -546,7 +545,7 @@ class Actor:
 
         if pos >= 0:
             # We are on the chain. Send ping depending on our position.
-            return 1 - exp(pos-length)/2
+            return 1 - 1/1<<(length-pos)/2
             # this will never be 1 because we need to leave some time for
             # interlopers, below. Otherwise we could divide by l-1, as
             # l must be at least 2. s must also be at least 1.
