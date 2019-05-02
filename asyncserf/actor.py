@@ -227,6 +227,7 @@ class Actor:
         self._ping_q = anyio.create_queue(1)
         self._ready = False
         self._tagged = 0  # False: waiting, True: tagged
+        self._valid_pings = 0
 
         self._values = {}  # map names to steps
         self._history = NodeList(self._nodes)  # those in the loop
@@ -239,7 +240,7 @@ class Actor:
             self._rand = tcr._r
 
         self._next_ping_time = 0
-        self._recover_event = None
+        self._recover_pings = {}
 
     @property
     def random(self):
@@ -270,6 +271,7 @@ class Actor:
                 while True:
                     msg = await self._ping_q.get()
             if not self._tagged:
+                self._valid_pings += 1
                 await self._evt_q.put(PingEvent(msg))
 
     async def __aexit__(self, *tb):
@@ -328,6 +330,7 @@ class Actor:
                     t = self._cycle
                     await self._evt_q.put(TagEvent())
                     self._tagged = 3
+                    self._valid_pings += 1
                 elif self._tagged == 3:
                     await self._evt_q.put(UntagEvent())
                     self._tagged = 0
@@ -355,9 +358,12 @@ class Actor:
             msg_node = msg['node']
         else:
             msg_node = msg["history"][0]
-            if self._recover_event is not None and msg_node == self._history[0]:
-                await self._recover_event.set()
-                self._recover_event = None
+            ping = self._recover_pings.get(msg_node, None)
+            if isinstance(ping,anyio.abc.Event):
+                await ping.set()
+            else:
+                self._recover_pings[msg_node] = self._valid_pings
+
 
         if msg_node == self._name:
             # my own message, returned
@@ -386,7 +392,7 @@ class Actor:
 
         prefer_new = self.has_priority(msg_node, prev_node)
 
-        hist = list(self._history)
+        hist = NodeList(0, self._history)
         if prefer_new:
             self._history = NodeList(self._nodes, msg["history"])  # self._prev_history
             if 'node' in msg:
@@ -418,10 +424,13 @@ class Actor:
             except ValueError:
                 pass
             else:
-                await self._evt_q.put(RecoverEvent(pos, prefer_new, hist, ([msg['node']] if 'node' in msg else []) + msg["history"]))
-            if pos > -1 and not prefer_new:
+                h = NodeList(0, msg["history"])
+                if "node" in msg:
+                    h += msg['node']
+                await self._evt_q.put(RecoverEvent(pos, prefer_new, hist, h))
+            if pos > -1 and prefer_new:
                 evt = anyio.create_event()
-                await self._client.spawn(self._send_delay_ping, pos, evt)
+                await self._client.spawn(self._send_delay_ping, pos, evt, hist)
                 await evt.wait()
 
 
@@ -481,38 +490,42 @@ class Actor:
         assert a != b
         return a < b
 
-    async def _send_ping(self, recover=False):
-        if recover:
-            msg = {"value": self._values[self._history[0]]}
-            h = self._history
+    async def _send_ping(self, history=None):
+        if history is not None:
+            msg = {"value": self._values[history[0]]}
         else:
             msg = {"node": self._name, "value": self._value}
             self._values[self._name] = self._value
             if self._history:
                 self._tagged = 1
-            h = self._prev_history = self._history
+            history = self._prev_history = self._history
             self._history += self._name
             self._get_next_ping_time()
-        msg["history"] = h[0:self._splits]
+        msg["history"] = history[0:self._splits]
         self.logger.debug("SEND %r",msg)
         await self._client.serf_send(self._prefix, msg)
 
-    async def _send_delay_ping(self, pos, evt):
-        if self._recover_event is not None:
+    async def _send_delay_ping(self, pos, evt, history):
+        node = history[0]
+        ping = self._recover_pings.get(node, None)
+        if isinstance(ping, anyio.abc.Event) or isinstance(ping,int) and ping >= self._valid_pings - self._nodes/2:
+            if isinstance(ping, int):
+                del self._recover_pings[node]
             await evt.set()
             return
-        self._recover_event = e = anyio.create_event()
+        self._recover_pings[node] = e = anyio.create_event()
         await evt.set()
 
         async with anyio.move_on_after(self._gap * (1 - 1 / (1 << pos))) as x:
-            await self._recover_event.wait()
-        if self._recover_event is e:
-            self._recover_event = None
+            await e.wait()
+        if self._recover_pings.get(node, None) is e:
+            del self._recover_pings[node]
         else:
             return
         if x.cancel_called:
-            self.logger.info("SplitRecover %s: no signal %d", self._name, pos)
-            await self._send_ping(recover=True)
+            if pos:
+                self.logger.info("PingDelay: no signal %d", pos)
+            await self._send_ping(history=history)
 
     def _get_next_ping_time(self):
         t = self._time_to_next_ping()
