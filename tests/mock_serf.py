@@ -71,7 +71,9 @@ async def stdtest(n=1, run=True, **kw):
         async with AsyncExitStack() as ex:
             ex.enter_context(mock.patch("time.time", new=tm))
             ex.enter_context(
-                mock.patch("asyncserf.client.serf_client", new=partial(mock_serf_client, st))
+                mock.patch(
+                    "asyncserf.client.serf_client", new=partial(mock_serf_client, st)
+                )
             )
 
             class IsStarted:
@@ -83,6 +85,7 @@ async def stdtest(n=1, run=True, **kw):
                     self.n -= 1
                     if not self.n:
                         self.dly.set()
+
             try:
                 yield st
             finally:
@@ -118,6 +121,7 @@ class MockSerf:
         class cc:
             def __init__(self, sc):
                 self.sc = sc
+
             async def cancel(self):
                 self.sc.cancel()
 
