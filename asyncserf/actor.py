@@ -238,7 +238,8 @@ class Actor:
         self._recover_event = None
 
     @property
-    def _random(self):
+    def random(self):
+        """A random float between 0 and 1 (uniform)"""
         return self._rand.random()
 
     @property
@@ -310,7 +311,7 @@ class Actor:
                 await self._rdr_q.put(msg['data'])
 
     async def _run(self):
-        await anyio.sleep((self._random / 2 + 1.5) * self._gap + self._cycle)
+        await anyio.sleep((self.random / 2 + 1.5) * self._gap + self._cycle)
         await self._send_ping()
 
         while True:
@@ -519,7 +520,7 @@ class Actor:
         assuming that none arrive in the meantime, in cycles."""
         if not self._history:
             # we might be the only node
-            return 1.9-self.random()/5
+            return 1.9-self.random/5
 
         if self._history[0] == self._name:
             # we sent the last ping.
@@ -541,7 +542,7 @@ class Actor:
         if not self._ready:
             if p > lv // 2:
                 # No, the first active host is too far back.
-                return 2+self.random()/3
+                return 2+self.random/3
 
         return self.ping_delay(s-1,lv, len(self._history) < self._nodes, max(len(self._values), self._n_hosts))
 
@@ -572,7 +573,7 @@ class Actor:
 
         if pos >= 0:
             # We are on the chain. Send ping depending on our position.
-            return 1 - 1/1<<(length-pos)/2
+            return 1 - 1/(1<<(length-pos))/2
             # this will never be 1 because we need to leave some time for
             # interlopers, below. Otherwise we could divide by l-1, as
             # l must be at least 2. s must also be at least 1.
@@ -582,10 +583,10 @@ class Actor:
             f = 3
         else:
             f = 10
-        if self._random < 1 / f / total:
+        if self.random < 1 / f / total:
             # send early (try getting onto the chain)
-            return self._random / 3
+            return self.random / 3
         else:
             # send late (fallback)
-            return 1.5 + self._random / 2
+            return 1.5 + self.random / 2
 
