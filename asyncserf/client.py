@@ -89,7 +89,7 @@ class Serf:
           a cancel scope you can use to stop the task.
         """
 
-        async def _run(self, proc, args, kw, *, result=None):
+        async def _run(proc, args, kw, *, result=None):
             """
             Helper for starting a task.
 

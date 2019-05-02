@@ -20,7 +20,7 @@ otm = time.time
 
 
 @asynccontextmanager
-async def stdtest(n=1, run=True, **kw):
+async def stdtest(n=1, **kw):
     clock = trio.hazmat.current_clock()
     clock.autojump_threshold = 0.01
 
@@ -155,9 +155,11 @@ class MockSerfStream:
     def __init__(self, serf, typ):
         self.serf = serf
         self.typ = typ
+        self.q = None
 
     async def __aenter__(self):
         logger.debug("SERF:MON START:%s", self.typ)
+        assert self.q is None
         self.q = anyio.create_queue(100)
         self.serf.streams.setdefault(self.typ, []).append(self)
         return self
@@ -165,7 +167,7 @@ class MockSerfStream:
     async def __aexit__(self, *tb):
         self.serf.streams[self.typ].remove(self)
         logger.debug("SERF:MON END:%s", self.typ)
-        del self.q
+        self.q = None
 
     def __aiter__(self):
         return self

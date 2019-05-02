@@ -52,8 +52,8 @@ async def test_10_all(autojump_clock):
                             if c > 2:
                                 break
                 k.logger.debug("N2 %r", k._values)
-                for i in range(1, 6):
-                    assert k._values["c_" + str(i)] == i * 31
+                for x in range(1, 6):
+                    assert k._values["c_" + str(x)] == x * 31
 
         async with trio.open_nursery() as tg:
             for i in range(1, 6):
