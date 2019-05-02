@@ -87,11 +87,14 @@ class RecoverEvent(NodeEvent):
 
 class NodeList(list):
     """
-    This is an augmented : class: `list`, used to store a list of unique
+    This is an augmented :class: `list`, used to store a list of unique
     node names, up to some maximum.
 
     This is a simplistic implementation. It should not be used for large
     lists.
+
+    Arguments:
+      maxlen (int): The max length of the list. Use zero for "indefinite".
 
     >>> n = NodeList(3)
     >>> n += "a"
@@ -114,7 +117,7 @@ class NodeList(list):
     ['d', 'c', 'a']
     >>> n += "c"
     >>> n
-    ['c', 'd', 'a']
+    ['c', 'd']
     >>> 
     """
     def __init__(self, maxlen, data=()):
@@ -124,28 +127,29 @@ class NodeList(list):
     def __iadd__(self, name):
         """Move 'name' to the front (or add it).
 
-        This code shortens the list by one if you replace a node that's not
-        at the end of the list. The effect is that nodes are removed from
-        the end gradually, when a net split results in stale nodes.
-
-        Alternately we could chop the list off at that ppoint; however this
-        would unduly perturb a working network that exhibits delayed and
-        thus crossed ``ping`` messages.
+        This shortens the list by one if you replace a node that's not
+        at the end (if maxlen is >0). The effect is that nodes are removed
+        from the end gradually. Thi sis useful when a network split results
+        in stale nodes.
         """
         try:
             i = self.index(name)
         except ValueError:
             i = -1
         self = type(self)(self.maxlen, self)
+
         if i >= 0:
-            if i < len(self)-1:
-                self.pop(i)
+            self.pop(i)
+
+        # We pop an additional item if
+        # + the length is bounded
+        # + there's something that can be removed
+        # + we either
+        # -- removed something (except from the end), or
+        # -- the list is maxed out, i.e. we didn't remove anything
+        if self.maxlen > 0 and len(self) > 0 and (0 <= i < len(self) or len(self) == self.maxlen):
             self.pop(-1)
-            # alternate solution: replace both with
-            # del self[i:]
         self.insert(0, name)
-        if len(self) > self.maxlen:
-            self.pop(-1)
         return self
 
     __add__ = __iadd__
