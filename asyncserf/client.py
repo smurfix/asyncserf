@@ -99,7 +99,9 @@ class Serf:
         Returns:
           a cancel scope you can use to stop the task.
         """
-        return await self.tg.spawn(self._spawn, proc, args, kw)
+        res = ValueEvent()
+        await self.tg.spawn(self._spawn, proc, args, kw, result=res)
+        return await res.get()
 
     async def cancel(self):
         """
