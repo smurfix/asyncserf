@@ -241,6 +241,13 @@ class Actor:
     def _random(self):
         return self._rand.random()
 
+    @property
+    def history_pos(self, node):
+        try:
+            return self._history.index(node)
+        except IndexError:
+            return -1
+
     async def __aenter__(self):
         if self._worker is not None or self._reader is not None:
             raise RuntimeError("You can't enter me twice")
