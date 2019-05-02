@@ -206,7 +206,7 @@ class Actor:
         self._client = client
         self._prefix = prefix
         self._name = name
-        self.logger = logging.getLogger("Actor."+self._name)
+        self.logger = logging.getLogger("asyncserf.actor."+self._name)
 
         self._cfg = {}
         self._cfg.update(self.DEFAULTS)
@@ -276,7 +276,9 @@ class Actor:
         return self
 
     async def __anext__(self):
-        return await self._evt_q.get()
+        evt = await self._evt_q.get()
+        self.logger.debug("EVT %r",evt)
+        return evt
 
     async def set_value(self, val):
         """Set the value that's included when we send a ping.
