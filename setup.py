@@ -49,9 +49,14 @@ setup(
         "msgpack >= 0.5.0",
         "anyio",
         "outcome",
-        "async_generator",
         "attrs >= 18.1",
     ],
+    extras_require={
+        ":python_version < '3.7'": [
+            "async_generator",
+            "async_exit_stack",
+            ],
+        },
     tests_require=[
         "pytest >= 2.5.2",
         "pytest-cov >= 2.3",
