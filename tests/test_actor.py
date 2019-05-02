@@ -13,11 +13,6 @@ logging.basicConfig(level=logging.INFO)
 
 N = 20
 
-import trio._core._run as tcr
-import os
-if "PYTHONHASHSEED" in os.environ:
-    tcr._ALLOW_DETERMINISTIC_SCHEDULING = True
-    tcr._r.seed(os.environ["PYTHONHASHSEED"])
 
 
 @pytest.mark.trio
