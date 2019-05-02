@@ -1,6 +1,5 @@
 import anyio
 import time
-from collections import deque
 from random import Random
 import os
 import logging
@@ -140,7 +139,7 @@ class NodeList(list):
     >>> n += "c"
     >>> n
     ['c', 'd']
-    >>> 
+    >>>
     """
 
     def __init__(self, maxlen, data=()):
@@ -531,7 +530,7 @@ class Actor:
             history = self._prev_history = self._history
             self._history += self._name
             self._get_next_ping_time()
-        msg["history"] = history[0 : self._splits]
+        msg["history"] = history[0 : self._splits]  # noqa: E203
         self.logger.debug("SEND %r", msg)
         await self._client.serf_send(self._prefix, msg)
 

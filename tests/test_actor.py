@@ -1,9 +1,7 @@
 import pytest
 import trio
-import random
 
 from .mock_serf import stdtest
-import asyncserf
 from asyncserf.actor import (
     Actor,
     GoodNodeEvent,
@@ -12,8 +10,6 @@ from asyncserf.actor import (
     RecoverEvent,
     PingEvent,
 )
-import msgpack
-from distkv.util import attrdict
 
 import logging
 
@@ -118,7 +114,6 @@ async def test_12_split1(autojump_clock, tocky):
     n_recover = [0] * N
 
     async with stdtest(n=N) as st:
-        seen = {}
 
         async def s1(i, *, task_status=trio.TASK_STATUS_IGNORED):
             nonlocal n_ping

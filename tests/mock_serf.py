@@ -7,7 +7,6 @@ import trio
 import anyio
 import mock
 import attr
-import copy
 import time
 from functools import partial
 

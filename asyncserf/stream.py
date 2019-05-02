@@ -50,7 +50,7 @@ class SerfStream:
             raise
         else:
             res = SerfEvent(self.client)
-            res._set(r.body, self.client.codec)  ## pylint: disable=protected-access
+            res._set(r.body, self.client.codec)  # pylint: disable=protected-access
             return res
 
     @property

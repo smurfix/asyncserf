@@ -8,6 +8,7 @@ from async_generator import asynccontextmanager
 from .codec import NoopCodec
 from .connection import SerfConnection
 from .stream import SerfQuery, SerfStream
+from .util import ValueEvent
 
 
 @asynccontextmanager
@@ -22,7 +23,7 @@ async def serf_client(**kw):
     """
     async with anyio.create_task_group() as tg:
         client = Serf(tg, **kw)
-        async with client._connected():  # pylint: disable=not-async-context-manager,protected-access
+        async with client._connected():  # noqa:E501 pylint:disable=not-async-context-manager,protected-access
             yield client
             await tg.cancel_scope.cancel()
 
@@ -80,18 +81,6 @@ class Serf:
             finally:
                 self._conn = None
 
-    async def _spawn(self, proc, args, kw, *, result=None):
-        """
-        Helper for starting a task.
-
-        This accepts a :class:`ValueEvent`, to pass the task's cancel scope
-        back to the caller.
-        """
-        async with anyio.open_cancel_scope() as scope:
-            if result is not None:
-                await result.set(scope)
-            await proc(*args, **kw)
-
     async def spawn(self, proc, *args, **kw):
         """
         Run a task within this object's task group.
@@ -99,8 +88,21 @@ class Serf:
         Returns:
           a cancel scope you can use to stop the task.
         """
+
+        async def _run(self, proc, args, kw, *, result=None):
+            """
+            Helper for starting a task.
+
+            This accepts a :class:`ValueEvent`, to pass the task's cancel scope
+            back to the caller.
+            """
+            async with anyio.open_cancel_scope() as scope:
+                if result is not None:
+                    await result.set(scope)
+                await proc(*args, **kw)
+
         res = ValueEvent()
-        await self.tg.spawn(self._spawn, proc, args, kw, result=res)
+        await self.tg.spawn(_run, proc, args, kw, result=res)
         return await res.get()
 
     async def cancel(self):
