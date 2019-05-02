@@ -62,14 +62,16 @@ class RecoverEvent(NodeEvent):
     Arguments:
       prio: Our recovery priority. Zero is highest.
       replace: Flag whether the other side superseded ours.
-      nodes: A list of recent actors on the remote side.
+      local_nodes: A list of recent actors on our side.
+      remote_nodes: A list of recent actors on the other side.
     """
-    def __init__(self, prio, replace, nodes):
+    def __init__(self, prio, replace, local_nodes, remote_nodes):
         self.prio = prio
         self.replace = replace
-        self.nodes = nodes
+        self.local_nodes = local_nodes
+        self.remote_nodes = remote_nodes
     def __repr__(self):
-        return "<Recover %d %s %r>" % (self.prio,self.replace,self.nodes)
+        return "<Recover %d %s %r>" % (self.prio,self.replace,self.remote_nodes)
 
 
 class NodeList(list):
@@ -390,7 +392,7 @@ class Actor:
             except ValueError:
                 pass
             else:
-                await self._evt_q.put(RecoverEvent(pos, prefer_new, ([msg['node']] if 'node' in msg else []) + msg["history"]))
+                await self._evt_q.put(RecoverEvent(pos, prefer_new, hist, ([msg['node']] if 'node' in msg else []) + msg["history"]))
             if pos > -1 and not prefer_new:
                 evt = anyio.create_event()
                 await self._client.spawn(self._send_delay_ping, pos, evt)
