@@ -34,6 +34,17 @@ class DetagEvent(UntagEvent):
     def __repr__(self):
         return "<DeTag %r>" % (self.node,)
 
+class RawPingEvent(NodeEvent):
+    """A ping from another node shows up. Not yet filtered!
+
+    Arguments:
+      msg (dict): The ping message of the currently-active actor.
+    """
+    def __init__(self, msg):
+        self.msg = msg
+    def __repr__(self):
+        return "<RawPing %r>" % (self.msg,)
+
 class PingEvent(NodeEvent):
     """A ping from another node shows up: the node in ``self.msg['node']`` is "it".
 
@@ -318,6 +329,7 @@ class Actor:
                     await self._send_ping()
                 continue
 
+            await self._evt_q.put(RawPingEvent(msg))
             await self.process_msg(msg)
 
     async def process_msg(self, msg):
