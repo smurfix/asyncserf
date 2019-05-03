@@ -3,7 +3,10 @@
 # (c) 2018 Matthias Urlichs
 
 import anyio
-from async_generator import asynccontextmanager
+try:
+    from contextlib import asynccontextmanager
+except ImportError:
+    from async_generator import asynccontextmanager
 
 from .codec import NoopCodec
 from .connection import SerfConnection
