@@ -424,7 +424,6 @@ class Actor:
             async with anyio.move_on_after(t):
                 msg = await self._rdr_q.get()
             if msg is None:
-                self.logger.debug("IN %d", t)
                 if self._tagged == 0:
                     await self._send_ping()
                 continue
@@ -450,7 +449,6 @@ class Actor:
         if msg_node == self._name:
             # my own message, returned
             return
-        self.logger.debug("IN %r", msg)
 
         self._values[msg_node] = this_val = msg["value"]
 
@@ -480,7 +478,6 @@ class Actor:
             if "node" in msg:
                 self._history += msg["node"]
 
-            self.logger.debug("Coll Ack %s", msg)
             if self._tagged:
                 if self._tagged == 3:
                     await self._evt_q.put(DetagEvent(msg_node))
@@ -491,11 +488,7 @@ class Actor:
 
         if same_prev:
             # These pings refer to the same previous ping. Good.
-            if not prefer_new:
-                self.logger.debug("Coll PRE %s", msg)
             return
-
-        self.logger.debug("Coll %s %s", prefer_new, msg)
 
         # We either have a healed network split (bad) or are new (oh well).
 
@@ -587,7 +580,6 @@ class Actor:
             self._history += self._name
             self._get_next_ping_time()
         msg["history"] = history[0 : self._splits]  # noqa: E203
-        self.logger.debug("SEND %r", msg)
         await self._client.serf_send(self._prefix, msg)
 
     async def _send_delay_ping(self, pos, evt, history):
@@ -618,7 +610,6 @@ class Actor:
 
     def _get_next_ping_time(self):
         t = self._time_to_next_ping()
-        self.logger.debug("TN %.3f", t)
         self._next_ping_time = time.time() + self._cycle + self._gap * t
 
     def _time_to_next_ping(self):
