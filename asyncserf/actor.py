@@ -18,16 +18,12 @@ class TagEvent(NodeEvent):
     def __repr__(self):
         return "<Tag>"
 
-    pass
-
 
 class UntagEvent(NodeEvent):
     """Your tag cycle time has passed. You're no longer "it"."""
 
     def __repr__(self):
         return "<UnTag>"
-
-    pass
 
 
 class DetagEvent(UntagEvent):
