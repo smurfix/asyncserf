@@ -69,11 +69,14 @@ async def stdtest(n=1, **kw):
         st = S(tg)
         async with AsyncExitStack() as ex:
             ex.enter_context(mock.patch("time.time", new=tm))
+            logging._startTime = tm()
+
             ex.enter_context(
                 mock.patch(
                     "asyncserf.client.serf_client", new=partial(mock_serf_client, st)
                 )
             )
+
 
             class IsStarted:
                 def __init__(self, n):
