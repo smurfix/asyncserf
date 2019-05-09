@@ -1,5 +1,7 @@
 import pytest
 import trio
+import anyio
+import time
 
 from .mock_serf import stdtest
 from asyncserf.actor import (
@@ -37,20 +39,25 @@ async def test_10_all(autojump_clock):
                     task_status.started()
                     await k.set_value(i * 31)
                     c = 0
+                    t = time.time()
                     async for m in k:
                         k.logger.debug("*** MSG %d %r", i, m)
+                        ot,t = t,time.time()
+                        if ot != t:
+                            assert tagged <= 1
                         msgs.setdefault(i, []).append(m)
                         if isinstance(m, GoodNodeEvent):
                             pass
                         elif isinstance(m, TagEvent):
-                            assert not tagged
-                            tagged = True
+                            # assert not tagged  # may collide, so checked above
+                            tagged += 1
                             c += 1
                         elif isinstance(m, UntagEvent):
                             assert tagged
-                            tagged = False
+                            tagged -= 1
                             if c > 2:
                                 break
+                assert tagged <= 1
                 k.logger.debug("N2 %r", k._values)
                 for x in range(1, 6):
                     assert k._values["c_" + str(x)] == x * 31
