@@ -3,6 +3,7 @@
 # (c) 2018 Matthias Urlichs
 
 import anyio
+
 try:
     from contextlib import asynccontextmanager
 except ImportError:

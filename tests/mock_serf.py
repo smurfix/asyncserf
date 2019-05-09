@@ -78,7 +78,6 @@ async def stdtest(n=1, **kw):
                 )
             )
 
-
             class IsStarted:
                 def __init__(self, n):
                     self.n = n
@@ -131,7 +130,6 @@ class MockSerf:
         evt = ValueEvent()
         await self._tg.spawn(run, evt)
         return await evt.get()
-
 
     def serf_mon(self, typ):
         if "," in typ:

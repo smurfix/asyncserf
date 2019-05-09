@@ -42,7 +42,7 @@ async def test_10_all(autojump_clock):
                     t = time.time()
                     async for m in k:
                         k.logger.debug("*** MSG %d %r", i, m)
-                        ot,t = t,time.time()
+                        ot, t = t, time.time()
                         if ot != t:
                             assert tagged <= 1
                         msgs.setdefault(i, []).append(m)

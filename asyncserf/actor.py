@@ -70,7 +70,7 @@ class PingEvent(NodeEvent):
 
     @property
     def node(self):
-        return self.msg['node']
+        return self.msg["node"]
 
 
 class GoodNodeEvent(NodeEvent):
@@ -242,14 +242,23 @@ class Actor:
 
     DEFAULTS = dict(cycle=10, gap=1.5, nodes=5, splits=4, n_hosts=10)
 
-    def __init__(self, client: Serf, prefix: str, name: str, tg: anyio.abc.TaskGroup = None, cfg: dict = {}):
+    def __init__(
+        self,
+        client: Serf,
+        prefix: str,
+        name: str,
+        tg: anyio.abc.TaskGroup = None,
+        cfg: dict = {},
+    ):
         self._client = client
         if tg is None:
             tg = client._tg
         self._prefix = prefix
         self._name = name
         self._tg = tg
-        self.logger = logging.getLogger("asyncserf.actor.%s.%s" % (self._prefix, self._name))
+        self.logger = logging.getLogger(
+            "asyncserf.actor.%s.%s" % (self._prefix, self._name)
+        )
 
         self._cfg = {}
         self._cfg.update(self.DEFAULTS)
@@ -297,7 +306,7 @@ class Actor:
 
     @property
     def cycle_time_max(self):
-        return self._cycle+2.5*self._gap
+        return self._cycle + 2.5 * self._gap
 
     @property
     def history_size(self):
