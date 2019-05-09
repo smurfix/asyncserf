@@ -374,7 +374,7 @@ class Actor:
 
     async def __anext__(self):
         evt = await self._evt_q.get()
-        self.logger.debug("EVT %r", evt)
+        self.logger.debug("EVT %s:%s %r", self._prefix, self._name, evt)
         return evt
 
     async def set_value(self, val):
