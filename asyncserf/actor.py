@@ -72,6 +72,10 @@ class PingEvent(NodeEvent):
     def __repr__(self):
         return "<Ping %r>" % (self.msg,)
 
+    @property
+    def node(self):
+        return self.msg['node']
+
 
 class GoodNodeEvent(NodeEvent):
     """A known-good node has been seen. We might want to get data from it.
@@ -286,6 +290,22 @@ class Actor:
     def random(self):
         """A random float between 0 and 1 (uniform)"""
         return self._rand.random()
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def cycle_time(self):
+        return self._cycle
+
+    @property
+    def cycle_time_max(self):
+        return self._cycle+2.5*self._gap
+
+    @property
+    def history_size(self):
+        return len(self._history)
 
     @property
     def history_pos(self, node):
