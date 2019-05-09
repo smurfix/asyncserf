@@ -1,6 +1,5 @@
 import pytest
 import trio
-import anyio
 import time
 
 from .mock_serf import stdtest
