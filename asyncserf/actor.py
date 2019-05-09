@@ -249,7 +249,7 @@ class Actor:
         self._prefix = prefix
         self._name = name
         self._tg = tg
-        self.logger = logging.getLogger("asyncserf.actor.%s.%s" % (self.prefix, self._name))
+        self.logger = logging.getLogger("asyncserf.actor.%s.%s" % (self._prefix, self._name))
 
         self._cfg = {}
         self._cfg.update(self.DEFAULTS)
