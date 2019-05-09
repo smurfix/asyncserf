@@ -253,7 +253,7 @@ class Actor:
         self._prefix = prefix
         self._name = name
         self._tg = tg
-        self.logger = logging.getLogger("asyncserf.actor." + self._name)
+        self.logger = logging.getLogger("asyncserf.actor.%s.%s" % (self.prefix, self._name))
 
         self._cfg = {}
         self._cfg.update(self.DEFAULTS)
@@ -374,7 +374,7 @@ class Actor:
 
     async def __anext__(self):
         evt = await self._evt_q.get()
-        self.logger.debug("EVT %s:%s %r", self._prefix, self._name, evt)
+        self.logger.debug("EVT %r", evt)
         return evt
 
     async def set_value(self, val):
