@@ -7,11 +7,11 @@ import trio
 import anyio
 import mock
 import attr
-import copy
 import time
 from functools import partial
 
 import asyncserf.client
+from asyncserf.util import ValueEvent
 
 import logging
 
@@ -21,7 +21,7 @@ otm = time.time
 
 
 @asynccontextmanager
-async def stdtest(n=1, run=True, **kw):
+async def stdtest(n=1, **kw):
     clock = trio.hazmat.current_clock()
     clock.autojump_threshold = 0.01
 
@@ -66,12 +66,16 @@ async def stdtest(n=1, run=True, **kw):
         except RuntimeError:
             return otm()
 
-    async with trio.open_nursery() as tg:
+    async with anyio.create_task_group() as tg:
         st = S(tg)
         async with AsyncExitStack() as ex:
             ex.enter_context(mock.patch("time.time", new=tm))
+            logging._startTime = tm()
+
             ex.enter_context(
-                mock.patch("asyncserf.client.serf_client", new=partial(mock_serf_client, st))
+                mock.patch(
+                    "asyncserf.client.serf_client", new=partial(mock_serf_client, st)
+                )
             )
 
             class IsStarted:
@@ -83,18 +87,19 @@ async def stdtest(n=1, run=True, **kw):
                     self.n -= 1
                     if not self.n:
                         self.dly.set()
+
             try:
                 yield st
             finally:
                 logger.info("Runtime: %s", clock.current_time())
-                tg.cancel_scope.cancel()
+                await tg.cancel_scope.cancel()
         logger.info("End")
         pass  # unwinding ex:AsyncExitStack
 
 
 @asynccontextmanager
 async def mock_serf_client(master, **cfg):
-    async with trio.open_nursery() as tg:
+    async with anyio.create_task_group() as tg:
         ms = MockSerf(tg, master, **cfg)
         master.serfs.add(ms)
         try:
@@ -107,7 +112,7 @@ async def mock_serf_client(master, **cfg):
 class MockSerf:
     def __init__(self, tg, master, **cfg):
         self.cfg = cfg
-        self.tg = tg
+        self._tg = tg
         self.streams = {}
         self._master = master
 
@@ -115,18 +120,16 @@ class MockSerf:
         return id(self)
 
     async def spawn(self, fn, *args, **kw):
-        class cc:
-            def __init__(self, sc):
-                self.sc = sc
-            async def cancel(self):
-                self.sc.cancel()
-
-        async def run(task_status=trio.TASK_STATUS_IGNORED):
+        async def run(evt=None, task_status=trio.TASK_STATUS_IGNORED):
             with trio.CancelScope() as sc:
                 task_status.started(sc)
+                if evt is not None:
+                    await evt.set(sc)
                 await fn(*args, **kw)
 
-        return cc(await self.tg.start(run))
+        evt = ValueEvent()
+        await self._tg.spawn(run, evt)
+        return await evt.get()
 
     def serf_mon(self, typ):
         if "," in typ:
@@ -152,9 +155,11 @@ class MockSerfStream:
     def __init__(self, serf, typ):
         self.serf = serf
         self.typ = typ
+        self.q = None
 
     async def __aenter__(self):
         logger.debug("SERF:MON START:%s", self.typ)
+        assert self.q is None
         self.q = anyio.create_queue(100)
         self.serf.streams.setdefault(self.typ, []).append(self)
         return self
@@ -162,7 +167,7 @@ class MockSerfStream:
     async def __aexit__(self, *tb):
         self.serf.streams[self.typ].remove(self)
         logger.debug("SERF:MON END:%s", self.typ)
-        del self.q
+        self.q = None
 
     def __aiter__(self):
         return self

@@ -1,26 +1,30 @@
 import anyio
 import time
-from collections import deque
 from random import Random
 import os
 import logging
 
 from .client import Serf
+from asyncserf.util import ValueEvent
+
 
 class NodeEvent:
     pass
 
+
 class TagEvent(NodeEvent):
     """This event says that for the moment, you're "it"."""
+
     def __repr__(self):
         return "<Tag>"
-    pass
+
 
 class UntagEvent(NodeEvent):
     """Your tag cycle time has passed. You're no longer "it"."""
+
     def __repr__(self):
         return "<UnTag>"
-    pass
+
 
 class DetagEvent(UntagEvent):
     """A ping from another node has arrived while you're "it".
@@ -29,10 +33,13 @@ class DetagEvent(UntagEvent):
     Arguments:
       node (str): The node that superseded us.
     """
+
     def __init__(self, node):
         self.node = node
+
     def __repr__(self):
         return "<DeTag %r>" % (self.node,)
+
 
 class RawPingEvent(NodeEvent):
     """A ping from another node shows up. Not yet filtered!
@@ -40,10 +47,13 @@ class RawPingEvent(NodeEvent):
     Arguments:
       msg (dict): The ping message of the currently-active actor.
     """
+
     def __init__(self, msg):
         self.msg = msg
+
     def __repr__(self):
         return "<RawPing %r>" % (self.msg,)
+
 
 class PingEvent(NodeEvent):
     """A ping from another node shows up: the node in ``self.msg['node']`` is "it".
@@ -51,10 +61,17 @@ class PingEvent(NodeEvent):
     Arguments:
       msg (dict): The ping message of the currently-active actor.
     """
+
     def __init__(self, msg):
         self.msg = msg
+
     def __repr__(self):
         return "<Ping %r>" % (self.msg,)
+
+    @property
+    def node(self):
+        return self.msg["node"]
+
 
 class GoodNodeEvent(NodeEvent):
     """A known-good node has been seen. We might want to get data from it.
@@ -62,10 +79,13 @@ class GoodNodeEvent(NodeEvent):
     Arguments:
       nodes (list(str)): Nodes known to have a non-``None`` value.
     """
+
     def __init__(self, nodes):
         self.nodes = nodes
+
     def __repr__(self):
         return "<Good %r>" % (self.nodes,)
+
 
 class RecoverEvent(NodeEvent):
     """We need to recover from a network split.
@@ -76,13 +96,15 @@ class RecoverEvent(NodeEvent):
       local_nodes: A list of recent actors on our side.
       remote_nodes: A list of recent actors on the other side.
     """
+
     def __init__(self, prio, replace, local_nodes, remote_nodes):
         self.prio = prio
         self.replace = replace
         self.local_nodes = local_nodes
         self.remote_nodes = remote_nodes
+
     def __repr__(self):
-        return "<Recover %d %s %r>" % (self.prio,self.replace,self.remote_nodes)
+        return "<Recover %d %s %r>" % (self.prio, self.replace, self.remote_nodes)
 
 
 class NodeList(list):
@@ -95,6 +117,8 @@ class NodeList(list):
 
     Arguments:
       maxlen (int): The max length of the list. Use zero for "indefinite".
+      mutable (bool): A flag whether "nodelist += foo" should modify "foo"
+        in-place. If not (the default), a new list will be allocated.
 
     >>> n = NodeList(3)
     >>> n += "a"
@@ -118,13 +142,15 @@ class NodeList(list):
     >>> n += "c"
     >>> n
     ['c', 'd']
-    >>> 
+    >>>
     """
-    def __init__(self, maxlen, data=()):
-        super().__init__(data)
-        self.maxlen=maxlen
 
-    def __iadd__(self, name):
+    def __init__(self, maxlen, data=(), mutable=False):
+        super().__init__(data)
+        self.maxlen = maxlen
+        self._mutable = mutable
+
+    def __iadd__(self, name, mutable=None):
         """Move 'name' to the front (or add it).
 
         This shortens the list by one if you replace a node that's not
@@ -132,11 +158,15 @@ class NodeList(list):
         from the end gradually. Thi sis useful when a network split results
         in stale nodes.
         """
+        if mutable is None:
+            mutable = self._mutable
+
         try:
             i = self.index(name)
         except ValueError:
             i = -1
-        self = type(self)(self.maxlen, self)
+        if mutable:
+            self = type(self)(self.maxlen, self, mutable=self._mutable)
 
         if i >= 0:
             self.pop(i)
@@ -147,12 +177,17 @@ class NodeList(list):
         # + we either
         # -- removed something (except from the end), or
         # -- the list is maxed out, i.e. we didn't remove anything
-        if self.maxlen > 0 and len(self) > 0 and (0 <= i < len(self) or len(self) == self.maxlen):
+        if (
+            self.maxlen > 0
+            and len(self) > 0
+            and (0 <= i < len(self) or len(self) == self.maxlen)
+        ):
             self.pop(-1)
         self.insert(0, name)
         return self
 
-    __add__ = __iadd__
+    def __add__(self, name):
+        return self.__iadd__(name, mutable=False)
 
 
 class Actor:
@@ -175,6 +210,7 @@ class Actor:
       prefix (str): The Serf event name to use. Actors with the same prefix
         form a group and do not affect actors using a different prefix.
       name (str): This node's name. **Must** be unambiguous.
+      tg: a taskgroup. May be ``None`` in which case the client's is used.
       cfg (dict): a dict containing additional configuration values.
 
     The config dict may contain these values.
@@ -206,21 +242,33 @@ class Actor:
 
     DEFAULTS = dict(cycle=10, gap=1.5, nodes=5, splits=4, n_hosts=10)
 
-    def __init__(self, client: Serf, prefix: str, name: str, cfg: dict = {}):
+    def __init__(
+        self,
+        client: Serf,
+        prefix: str,
+        name: str,
+        tg: anyio.abc.TaskGroup = None,
+        cfg: dict = {},
+    ):
         self._client = client
+        if tg is None:
+            tg = client._tg
         self._prefix = prefix
         self._name = name
-        self.logger = logging.getLogger("asyncserf.actor."+self._name)
+        self._tg = tg
+        self.logger = logging.getLogger(
+            "asyncserf.actor.%s.%s" % (self._prefix, self._name)
+        )
 
         self._cfg = {}
         self._cfg.update(self.DEFAULTS)
         self._cfg.update(cfg)
 
-        self._cycle = self._cfg['cycle']
-        self._gap = self._cfg['gap']
-        self._nodes = self._cfg['nodes']
-        self._splits = self._cfg['splits']
-        self._n_hosts = self._cfg['n_hosts']
+        self._cycle = self._cfg["cycle"]
+        self._gap = self._cfg["gap"]
+        self._nodes = self._cfg["nodes"]
+        self._splits = self._cfg["splits"]
+        self._n_hosts = self._cfg["n_hosts"]
 
         self._evt_q = anyio.create_queue(1)
         self._rdr_q = anyio.create_queue(99)
@@ -232,11 +280,12 @@ class Actor:
         self._values = {}  # map names to steps
         self._history = NodeList(self._nodes)  # those in the loop
         self._prev_history = None
-        rs = os.environ.get("PYTHONHASHSEED",None)
+        rs = os.environ.get("PYTHONHASHSEED", None)
         if rs is None:
             self._rand = Random()
         else:
             import trio._core._run as tcr
+
             self._rand = tcr._r
 
         self._next_ping_time = 0
@@ -248,26 +297,65 @@ class Actor:
         return self._rand.random()
 
     @property
+    def name(self):
+        return self._name
+
+    @property
+    def cycle_time(self):
+        return self._cycle
+
+    @property
+    def cycle_time_max(self):
+        return self._cycle + 2.5 * self._gap
+
+    @property
+    def history_size(self):
+        return len(self._history)
+
+    @property
     def history_pos(self, node):
         try:
             return self._history.index(node)
         except IndexError:
             return -1
 
+    async def spawn(self, proc, *args, **kw):
+        """
+        Run a task within this object's task group.
+
+        Returns:
+          a cancel scope you can use to stop the task.
+        """
+
+        async def _run(proc, args, kw, res):
+            """
+            Helper for starting a task.
+
+            This accepts a :class:`ValueEvent`, to pass the task's cancel scope
+            back to the caller.
+            """
+            async with anyio.open_cancel_scope() as scope:
+                await res.set(scope)
+                await proc(*args, **kw)
+
+        res = ValueEvent()
+        await self._tg.spawn(_run, proc, args, kw, res)
+        return await res.get()
+
     async def __aenter__(self):
         if self._worker is not None or self._reader is not None:
             raise RuntimeError("You can't enter me twice")
         evt = anyio.create_event()
-        self._reader = await self._client.spawn(self._read, evt)
+        self._reader = await self.spawn(self._read, evt)
         await evt.wait()
-        self._worker = await self._client.spawn(self._run)
-        self._pinger = await self._client.spawn(self._ping)
+        self._worker = await self.spawn(self._run)
+        self._pinger = await self.spawn(self._ping)
         return self
 
     async def _ping(self):
         while True:
             msg = await self._ping_q.get()
-            async with anyio.move_on_after(self._gap*2):
+            async with anyio.move_on_after(self._gap * 2):
                 while True:
                     msg = await self._ping_q.get()
             if not self._tagged:
@@ -276,13 +364,13 @@ class Actor:
 
     async def __aexit__(self, *tb):
         async with anyio.open_cancel_scope(shield=True):
-            w,self._worker = self._worker, None
+            w, self._worker = self._worker, None
             if w is not None:
                 await w.cancel()
-            w,self._reader = self._reader, None
+            w, self._reader = self._reader, None
             if w is not None:
                 await w.cancel()
-            w,self._pinger = self._pinger, None
+            w, self._pinger = self._pinger, None
             if w is not None:
                 await w.cancel()
 
@@ -291,7 +379,7 @@ class Actor:
 
     async def __anext__(self):
         evt = await self._evt_q.get()
-        self.logger.debug("EVT %r",evt)
+        self.logger.debug("EVT %r", evt)
         return evt
 
     async def set_value(self, val):
@@ -314,7 +402,7 @@ class Actor:
         async with self._client.serf_mon(self._prefix) as mon:
             await evt.set()
             async for msg in mon:
-                await self._rdr_q.put(msg['data'])
+                await self._rdr_q.put(msg["data"])
 
     async def _run(self):
         await anyio.sleep((self.random / 2 + 1.5) * self._gap + self._cycle)
@@ -341,7 +429,6 @@ class Actor:
             async with anyio.move_on_after(t):
                 msg = await self._rdr_q.get()
             if msg is None:
-                self.logger.debug("IN %d", t)
                 if self._tagged == 0:
                     await self._send_ping()
                 continue
@@ -354,26 +441,24 @@ class Actor:
 
         prev_node = self._history[0]
         this_val = msg["value"]
-        if 'node' in msg:
-            msg_node = msg['node']
+        if "node" in msg:
+            msg_node = msg["node"]
         else:
             msg_node = msg["history"][0]
             ping = self._recover_pings.get(msg_node, None)
-            if isinstance(ping,anyio.abc.Event):
+            if isinstance(ping, anyio.abc.Event):
                 await ping.set()
             else:
                 self._recover_pings[msg_node] = self._valid_pings
 
-
         if msg_node == self._name:
             # my own message, returned
             return
-        self.logger.debug("IN %r", msg)
 
         self._values[msg_node] = this_val = msg["value"]
 
         if msg["history"] and msg["history"][0] == self._history[0]:
-            if 'node' in msg:
+            if "node" in msg:
                 self._prev_history = self._history
                 self._history += msg_node
                 self._get_next_ping_time()
@@ -395,10 +480,9 @@ class Actor:
         hist = NodeList(0, self._history)
         if prefer_new:
             self._history = NodeList(self._nodes, msg["history"])  # self._prev_history
-            if 'node' in msg:
-                self._history += msg['node']
+            if "node" in msg:
+                self._history += msg["node"]
 
-            self.logger.debug("Coll Ack %s", msg)
             if self._tagged:
                 if self._tagged == 3:
                     await self._evt_q.put(DetagEvent(msg_node))
@@ -409,11 +493,7 @@ class Actor:
 
         if same_prev:
             # These pings refer to the same previous ping. Good.
-            if not prefer_new:
-                self.logger.debug("Coll PRE %s", msg)
             return
-
-        self.logger.debug("Coll %s %s", prefer_new, msg)
 
         # We either have a healed network split (bad) or are new (oh well).
 
@@ -426,18 +506,21 @@ class Actor:
             else:
                 h = NodeList(0, msg["history"])
                 if "node" in msg:
-                    h += msg['node']
+                    h += msg["node"]
                 await self._evt_q.put(RecoverEvent(pos, prefer_new, hist, h))
             if pos > -1 and prefer_new:
                 evt = anyio.create_event()
-                await self._client.spawn(self._send_delay_ping, pos, evt, hist)
+                await self.spawn(self._send_delay_ping, pos, evt, hist)
                 await evt.wait()
-
 
         elif this_val is not None:
             # The other node has become ready
-            await self._evt_q.put(GoodNodeEvent([msg["node"]]+list(h for h in msg["history"] if self._values[h] is not None)))
-
+            await self._evt_q.put(
+                GoodNodeEvent(
+                    [msg["node"]]
+                    + list(h for h in msg["history"] if self._values[h] is not None)
+                )
+            )
 
     def get_value(self, node):
         """
@@ -501,14 +584,17 @@ class Actor:
             history = self._prev_history = self._history
             self._history += self._name
             self._get_next_ping_time()
-        msg["history"] = history[0:self._splits]
-        self.logger.debug("SEND %r",msg)
+        msg["history"] = history[0 : self._splits]  # noqa: E203
         await self._client.serf_send(self._prefix, msg)
 
     async def _send_delay_ping(self, pos, evt, history):
         node = history[0]
         ping = self._recover_pings.get(node, None)
-        if isinstance(ping, anyio.abc.Event) or isinstance(ping,int) and ping >= self._valid_pings - self._nodes/2:
+        if (
+            isinstance(ping, anyio.abc.Event)
+            or isinstance(ping, int)
+            and ping >= self._valid_pings - self._nodes / 2
+        ):
             if isinstance(ping, int):
                 del self._recover_pings[node]
             await evt.set()
@@ -529,7 +615,6 @@ class Actor:
 
     def _get_next_ping_time(self):
         t = self._time_to_next_ping()
-        self.logger.debug("TN %.3f",t)
         self._next_ping_time = time.time() + self._cycle + self._gap * t
 
     def _time_to_next_ping(self):
@@ -537,7 +622,7 @@ class Actor:
         assuming that none arrive in the meantime, in cycles."""
         if not self._history:
             # we might be the only node
-            return 1.9-self.random/5
+            return 1.9 - self.random / 5
 
         if self._history[0] == self._name:
             # we sent the last ping.
@@ -559,9 +644,14 @@ class Actor:
         if not self._ready:
             if p > lv // 2:
                 # No, the first active host is too far back.
-                return 2+self.random/3
+                return 2 + self.random / 3
 
-        return self.ping_delay(s-1,lv, len(self._history) < self._nodes, max(len(self._values), self._n_hosts))
+        return self.ping_delay(
+            s - 1,
+            lv,
+            len(self._history) < self._nodes,
+            max(len(self._values), self._n_hosts),
+        )
 
     def ping_delay(self, pos, length, todo, total):
         """
@@ -590,7 +680,7 @@ class Actor:
 
         if pos >= 0:
             # We are on the chain. Send ping depending on our position.
-            return 1 - 1/(1<<(length-pos))/2
+            return 1 - 1 / (1 << (length - pos)) / 2
             # this will never be 1 because we need to leave some time for
             # interlopers, below. Otherwise we could divide by l-1, as
             # l must be at least 2. s must also be at least 1.
@@ -606,4 +696,3 @@ class Actor:
         else:
             # send late (fallback)
             return 1.5 + self.random / 2
-

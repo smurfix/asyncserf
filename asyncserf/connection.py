@@ -199,7 +199,7 @@ class SerfConnection:
         if params is not None:
             msg += msgpack.packb(params)
 
-        async with self._send_lock:  ## pylint: disable=not-async-context-manager  ## owch
+        async with self._send_lock:  # pylint: disable=not-async-context-manager  ## owch
             if self._socket is None:
                 raise anyio.exceptions.ClosedResourceError()
             await self._socket.send_all(msg)

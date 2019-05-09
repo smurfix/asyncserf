@@ -5,7 +5,6 @@ import anyio
 from async_generator import asynccontextmanager
 
 from asyncserf import connection
-from asyncserf.exceptions import SerfConnectionError
 
 # pylint: disable=not-async-context-manager,protected-access
 
