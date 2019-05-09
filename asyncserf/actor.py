@@ -5,6 +5,7 @@ import os
 import logging
 
 from .client import Serf
+from asyncserf.util import ValueEvent
 
 
 class NodeEvent:
@@ -209,6 +210,7 @@ class Actor:
       prefix (str): The Serf event name to use. Actors with the same prefix
         form a group and do not affect actors using a different prefix.
       name (str): This node's name. **Must** be unambiguous.
+      tg: a taskgroup. May be ``None`` in which case the client's is used.
       cfg (dict): a dict containing additional configuration values.
 
     The config dict may contain these values.
@@ -240,10 +242,13 @@ class Actor:
 
     DEFAULTS = dict(cycle=10, gap=1.5, nodes=5, splits=4, n_hosts=10)
 
-    def __init__(self, client: Serf, prefix: str, name: str, cfg: dict = {}):
+    def __init__(self, client: Serf, prefix: str, name: str, tg: anyio.abc.TaskGroup = None, cfg: dict = {}):
         self._client = client
+        if tg is None:
+            tg = client._tg
         self._prefix = prefix
         self._name = name
+        self._tg = tg
         self.logger = logging.getLogger("asyncserf.actor." + self._name)
 
         self._cfg = {}
@@ -289,14 +294,37 @@ class Actor:
         except IndexError:
             return -1
 
+    async def spawn(self, proc, *args, **kw):
+        """
+        Run a task within this object's task group.
+
+        Returns:
+          a cancel scope you can use to stop the task.
+        """
+
+        async def _run(proc, args, kw, res):
+            """
+            Helper for starting a task.
+
+            This accepts a :class:`ValueEvent`, to pass the task's cancel scope
+            back to the caller.
+            """
+            async with anyio.open_cancel_scope() as scope:
+                await res.set(scope)
+                await proc(*args, **kw)
+
+        res = ValueEvent()
+        await self._tg.spawn(_run, proc, args, kw, res)
+        return await res.get()
+
     async def __aenter__(self):
         if self._worker is not None or self._reader is not None:
             raise RuntimeError("You can't enter me twice")
         evt = anyio.create_event()
-        self._reader = await self._client.spawn(self._read, evt)
+        self._reader = await self.spawn(self._read, evt)
         await evt.wait()
-        self._worker = await self._client.spawn(self._run)
-        self._pinger = await self._client.spawn(self._ping)
+        self._worker = await self.spawn(self._run)
+        self._pinger = await self.spawn(self._ping)
         return self
 
     async def _ping(self):
@@ -464,7 +492,7 @@ class Actor:
                 await self._evt_q.put(RecoverEvent(pos, prefer_new, hist, h))
             if pos > -1 and prefer_new:
                 evt = anyio.create_event()
-                await self._client.spawn(self._send_delay_ping, pos, evt, hist)
+                await self.spawn(self._send_delay_ping, pos, evt, hist)
                 await evt.wait()
 
         elif this_val is not None:
