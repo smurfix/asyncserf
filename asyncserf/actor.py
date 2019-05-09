@@ -116,6 +116,8 @@ class NodeList(list):
 
     Arguments:
       maxlen (int): The max length of the list. Use zero for "indefinite".
+      mutable (bool): A flag whether "nodelist += foo" should modify "foo"
+        in-place. If not (the default), a new list will be allocated.
 
     >>> n = NodeList(3)
     >>> n += "a"
@@ -142,11 +144,12 @@ class NodeList(list):
     >>>
     """
 
-    def __init__(self, maxlen, data=()):
+    def __init__(self, maxlen, data=(), mutable=False):
         super().__init__(data)
         self.maxlen = maxlen
+        self._mutable = mutable
 
-    def __iadd__(self, name):
+    def __iadd__(self, name, mutable=None):
         """Move 'name' to the front (or add it).
 
         This shortens the list by one if you replace a node that's not
@@ -154,11 +157,15 @@ class NodeList(list):
         from the end gradually. Thi sis useful when a network split results
         in stale nodes.
         """
+        if mutable is None:
+            mutable = self._mutable
+
         try:
             i = self.index(name)
         except ValueError:
             i = -1
-        self = type(self)(self.maxlen, self)
+        if mutable:
+            self = type(self)(self.maxlen, self, mutable=self._mutable)
 
         if i >= 0:
             self.pop(i)
@@ -178,7 +185,8 @@ class NodeList(list):
         self.insert(0, name)
         return self
 
-    __add__ = __iadd__
+    def __add__(self, name):
+        return self.__iadd__(name, mutable=False)
 
 
 class Actor:
