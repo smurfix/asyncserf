@@ -480,13 +480,14 @@ class Actor:
                     t = self._gap
                     self._tagged = 2
                 elif self._tagged == 2:
-                    t = self._cycle
+                    t = self._cycle - self._gap/2
                     await self._evt_q.put(TagEvent())
                     self._tagged = 3
                     self._valid_pings += 1
                 elif self._tagged == 3:
                     await self._evt_q.put(UntagEvent())
                     self._tagged = 0
+                    t = self._gap*1.5
                 else:
                     raise RuntimeError("tagged", self._tagged)
             if t <= 0:
