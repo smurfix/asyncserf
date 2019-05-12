@@ -138,7 +138,7 @@ class MockSerf:
         return s
 
     async def serf_send(self, typ, data):
-        # logger.debug("SERF:%s: %r", typ, data)
+        # logger.debug("SERF>%s> %r", typ, data)
 
         for s in list(self._master.serfs):
             for x in self._master.splits:
@@ -175,4 +175,5 @@ class MockSerfStream:
 
     async def __anext__(self):
         res = await self.q.get()
+        # logger.debug("SERF<%s< %r", self.typ, res)
         return dict(data=res)

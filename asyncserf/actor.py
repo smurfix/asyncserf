@@ -135,7 +135,7 @@ class RecoverEvent(NodeEvent):
         self.remote_nodes = remote_nodes
 
     def __repr__(self):
-        return "<Recover %d %s %r>" % (self.prio, self.replace, self.remote_nodes)
+        return "<Recover %d %s %r %r>" % (self.prio, self.replace, self.local_nodes, self.remote_nodes)
 
 
 class NodeList(list):
@@ -444,7 +444,6 @@ class Actor:
 
     async def __anext__(self):
         evt = await self._evt_q.get()
-        self.logger.debug("EVT %r", evt)
         return evt
 
     async def set_value(self, val):
@@ -510,10 +509,15 @@ class Actor:
             msg_node = msg["node"]
         else:
             msg_node = msg["history"][0]
+
+            # This is a recovery ping.
             ping = self._recover_pings.get(msg_node, None)
             if isinstance(ping, anyio.abc.Event):
+                # We're waiting for this.
                 await ping.set()
             else:
+                # This ping is not expected, but it might have arrived before its cause.
+                # Record that fact so that we don't also send it.
                 self._recover_pings[msg_node] = self._valid_pings
 
         if msg_node == self._name:
@@ -524,12 +528,13 @@ class Actor:
 
         if msg["history"] and msg["history"][0] == self._history[0]:
             if "node" in msg:
+                # Standard ping.
                 self._prev_history = self._history
                 self._history += msg_node
                 self._get_next_ping_time()
                 await self._ping_q.put(msg)
             else:
-                # This is a notification ping for our side, after a split.
+                # This is a recovery ping for our side, after a split.
                 # Ignore it: we already initiated recovery when sending the
                 # notification, see below.
                 pass
