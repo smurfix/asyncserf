@@ -89,6 +89,16 @@ class PingEvent(AuthPingEvent):
         """
         return self.msg["node"]
 
+    @property
+    def value(self):
+        """
+        Name of the node. Shortcut to ``msg['node']``.
+        """
+        try:
+            return self.msg["value"]
+        except KeyError:
+            return None
+
 
 class GoodNodeEvent(NodeEvent):
     """
@@ -340,11 +350,25 @@ class Actor:
         return self._cycle + 2.5 * self._gap
 
     @property
+    def history(self):
+        """
+        A copy of the current history.
+        """
+        return self._history.copy()
+
+    @property
     def history_size(self):
         """
         The length of the current history.
         """
         return len(self._history)
+
+    @property
+    def history_maxsize(self):
+        """
+        The length of the current history.
+        """
+        return self._nodes
 
     @property
     def history_pos(self, node):
