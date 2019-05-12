@@ -12,7 +12,14 @@ class NodeEvent:
     pass
 
 
-class TagEvent(NodeEvent):
+class AuthPingEvent(NodeEvent):
+    """
+    Superclass for tag and ping: must arrive within :meth:`cycle_time_max` seconds of each other.
+    """
+    pass
+
+
+class TagEvent(AuthPingEvent):
     """This event says that for the moment, you're "it"."""
 
     def __repr__(self):
@@ -55,7 +62,7 @@ class RawPingEvent(NodeEvent):
         return "<RawPing %r>" % (self.msg,)
 
 
-class PingEvent(NodeEvent):
+class PingEvent(AuthPingEvent):
     """A ping from another node shows up: the node in ``self.msg['node']`` is "it".
 
     Arguments:
