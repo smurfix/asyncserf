@@ -1,3 +1,9 @@
+asyncserf (0.9.1-1) unstable; urgency=medium
+
+  * Merge 0.9.1
+
+ -- Matthias Urlichs <matthias@urlichs.de>  Sun, 12 May 2019 18:32:59 +0200
+
 asyncserf (0.9.0-1) unstable; urgency=medium
 
   * Merge 0.9.0

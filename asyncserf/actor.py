@@ -584,6 +584,15 @@ class Actor:
 
         self._values[msg_node] = this_val = msg["value"]
 
+        if self._value is None and this_val is not None:
+            # The other node is ready
+            await self._evt_q.put(
+                GoodNodeEvent(
+                    [msg["node"]]
+                    + list(h for h in msg["history"] if self._values[h] is not None)
+                )
+            )
+
         if msg["history"] and (msg["history"][1:2] == self._history[0:1]):
             if "node" in msg:
                 # Standard ping.
@@ -639,15 +648,6 @@ class Actor:
                 evt = anyio.create_event()
                 await self.spawn(self._send_delay_ping, pos, evt, hist)
                 await evt.wait()
-
-        elif this_val is not None:
-            # The other node has become ready
-            await self._evt_q.put(
-                GoodNodeEvent(
-                    [msg["node"]]
-                    + list(h for h in msg["history"] if self._values[h] is not None)
-                )
-            )
 
     def get_value(self, node):
         """
