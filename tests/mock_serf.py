@@ -138,7 +138,7 @@ class MockSerf:
         return s
 
     async def serf_send(self, typ, data):
-        # logger.debug("SERF:%s: %r", typ, data)
+        # logger.debug("SERF>%s> %r", typ, data)
 
         for s in list(self._master.serfs):
             for x in self._master.splits:
@@ -170,8 +170,10 @@ class MockSerfStream:
         self.q = None
 
     def __aiter__(self):
+        self.q = anyio.create_queue(100)
         return self
 
     async def __anext__(self):
         res = await self.q.get()
+        # logger.debug("SERF<%s< %r", self.typ, res)
         return dict(data=res)

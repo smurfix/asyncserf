@@ -12,22 +12,35 @@ class NodeEvent:
     pass
 
 
-class TagEvent(NodeEvent):
-    """This event says that for the moment, you're "it"."""
+class AuthPingEvent(NodeEvent):
+    """
+    Superclass for tag and ping: must arrive within :meth:`cycle_time_max` seconds of each other.
+    """
+
+    pass
+
+
+class TagEvent(AuthPingEvent):
+    """
+    This event says that for the moment, you're "it".
+    """
 
     def __repr__(self):
         return "<Tag>"
 
 
 class UntagEvent(NodeEvent):
-    """Your tag cycle time has passed. You're no longer "it"."""
+    """
+    Your tag cycle time has passed. You're no longer "it".
+    """
 
     def __repr__(self):
         return "<UnTag>"
 
 
 class DetagEvent(UntagEvent):
-    """A ping from another node has arrived while you're "it".
+    """
+    A ping from another node has arrived while you're "it".
     Unfortunately, it is "better" than ours.
 
     Arguments:
@@ -42,7 +55,8 @@ class DetagEvent(UntagEvent):
 
 
 class RawPingEvent(NodeEvent):
-    """A ping from another node shows up. Not yet filtered!
+    """
+    A ping from another node shows up. Not yet filtered!
 
     Arguments:
       msg (dict): The ping message of the currently-active actor.
@@ -55,8 +69,9 @@ class RawPingEvent(NodeEvent):
         return "<RawPing %r>" % (self.msg,)
 
 
-class PingEvent(NodeEvent):
-    """A ping from another node shows up: the node in ``self.msg['node']`` is "it".
+class PingEvent(AuthPingEvent):
+    """
+    A ping from another node shows up: the node ``.node`` is "it".
 
     Arguments:
       msg (dict): The ping message of the currently-active actor.
@@ -70,14 +85,30 @@ class PingEvent(NodeEvent):
 
     @property
     def node(self):
+        """
+        Name of the node. Shortcut to ``msg['node']``.
+        """
         return self.msg["node"]
+
+    @property
+    def value(self):
+        """
+        Name of the node. Shortcut to ``msg['node']``.
+        """
+        try:
+            return self.msg["value"]
+        except KeyError:
+            return None
 
 
 class GoodNodeEvent(NodeEvent):
-    """A known-good node has been seen. We might want to get data from it.
+    """
+    A known-good node has been seen. We might want to get data from it.
 
     Arguments:
       nodes (list(str)): Nodes known to have a non-``None`` value.
+
+    This event is seen while starting up, when our value is ``None``.
     """
 
     def __init__(self, nodes):
@@ -88,11 +119,12 @@ class GoodNodeEvent(NodeEvent):
 
 
 class RecoverEvent(NodeEvent):
-    """We need to recover from a network split.
+    """
+    We need to recover from a network split.
 
     Arguments:
       prio: Our recovery priority. Zero is highest.
-      replace: Flag whether the other side superseded ours.
+      replace: Flag whether the other side has superseded ours.
       local_nodes: A list of recent actors on our side.
       remote_nodes: A list of recent actors on the other side.
     """
@@ -104,13 +136,18 @@ class RecoverEvent(NodeEvent):
         self.remote_nodes = remote_nodes
 
     def __repr__(self):
-        return "<Recover %d %s %r>" % (self.prio, self.replace, self.remote_nodes)
+        return "<Recover %d %s %r %r>" % (
+            self.prio,
+            self.replace,
+            self.local_nodes,
+            self.remote_nodes,
+        )
 
 
 class NodeList(list):
     """
-    This is an augmented :class: `list`, used to store a list of unique
-    node names, up to some maximum.
+    This is an augmented :class: `list`, used to store unique node names,
+    up to some maximum (if used).
 
     This is a simplistic implementation. It should not be used for large
     lists.
@@ -249,6 +286,7 @@ class Actor:
         name: str,
         tg: anyio.abc.TaskGroup = None,
         cfg: dict = {},
+        enabled: bool = True,
     ):
         self._client = client
         if tg is None:
@@ -270,11 +308,18 @@ class Actor:
         self._splits = self._cfg["splits"]
         self._n_hosts = self._cfg["n_hosts"]
 
+        if self._cycle < 2:
+            raise ValueError("cycle must be >= 2")
+        if self._gap < 1:
+            raise ValueError("gap must be >= 1")
+        if self._cycle < self._gap:
+            raise ValueError("cycle must be >= gap")
+
         self._evt_q = anyio.create_queue(1)
         self._rdr_q = anyio.create_queue(99)
         self._ping_q = anyio.create_queue(1)
         self._ready = False
-        self._tagged = 0  # False: waiting, True: tagged
+        self._tagged = 0 if enabled else -1  # >0: "our" tag is progressing
         self._valid_pings = 0
 
         self._values = {}  # map names to steps
@@ -306,14 +351,41 @@ class Actor:
 
     @property
     def cycle_time_max(self):
+        """
+        Max time between two ``AuthPingEvent`` messages.
+        """
         return self._cycle + 2.5 * self._gap
 
     @property
+    def history(self):
+        """
+        A copy of the current history.
+        """
+        return self._history.copy()
+
+    @property
     def history_size(self):
+        """
+        The length of the current history.
+        """
         return len(self._history)
 
     @property
+    def history_maxsize(self):
+        """
+        The length of the current history.
+        """
+        return self._nodes
+
+    @property
     def history_pos(self, node):
+        """
+        Return our position in the current history.
+
+        If we're disabled, always return -1.
+        """
+        if self._tagged < 0:
+            return -1
         try:
             return self._history.index(node)
         except IndexError:
@@ -358,7 +430,7 @@ class Actor:
             async with anyio.move_on_after(self._gap * 2):
                 while True:
                     msg = await self._ping_q.get()
-            if not self._tagged:
+            if self._tagged <= 0:
                 self._valid_pings += 1
                 await self._evt_q.put(PingEvent(msg))
 
@@ -379,7 +451,6 @@ class Actor:
 
     async def __anext__(self):
         evt = await self._evt_q.get()
-        self.logger.debug("EVT %r", evt)
         return evt
 
     async def set_value(self, val):
@@ -409,35 +480,81 @@ class Actor:
         await self._send_ping()
 
         while True:
-            msg = None
-            if self._tagged:
+            t = 0
+            if self._tagged > 0:
                 if self._tagged == 1:
                     t = self._gap
                     self._tagged = 2
                 elif self._tagged == 2:
-                    t = self._cycle
+                    t = self._cycle - self._gap / 2
                     await self._evt_q.put(TagEvent())
                     self._tagged = 3
                     self._valid_pings += 1
                 elif self._tagged == 3:
                     await self._evt_q.put(UntagEvent())
                     self._tagged = 0
+                    t = self._gap * 1.5
                 else:
                     raise RuntimeError("tagged", self._tagged)
-            if not self._tagged:
+            if t <= 0:
                 t = max(self._next_ping_time - time.time(), 0)
+
+            msg = None
             async with anyio.move_on_after(t):
                 msg = await self._rdr_q.get()
             if msg is None:
                 if self._tagged == 0:
                     await self._send_ping()
+                else:
+                    self._get_next_ping_time()
                 continue
 
             await self._evt_q.put(RawPingEvent(msg))
             await self.process_msg(msg)
 
+    async def enable(self, length=None):
+        """
+        Enable this actor.
+
+        Args:
+          length (int): New max length of the history. Default: Leave alone.
+        """
+        if self._tagged != -1:
+            return
+        self._tagged = 0
+        self._history.clear()
+        if length is not None:
+            self._nodes = length
+        self._history.maxlen = self._nodes
+        await self._send_ping()
+
+    async def disable(self, length=0):
+        """
+        Disable this actor.
+
+        The history length is set to "indefinite" so that a passive node
+        captures whatever is currently going on.
+
+        Args:
+          length (int): New max length of the history. Default: Zero.
+            Set to ``None`` to not change the current size limit.
+        """
+        if self._tagged == 3:
+            await self._evt_q.put(UntagEvent())
+        if length is not None:
+            self._nodes = length
+        self._history.maxlen = length
+        self._tagged = -1
+
     async def process_msg(self, msg):
         """Process this incoming message."""
+
+        if self._tagged < 0:
+            self._get_next_ping_time()
+            await self._ping_q.put(msg)
+            return
+
+        # We start off by sending a Ping. Thus our history is not empty.
 
         prev_node = self._history[0]
         this_val = msg["value"]
@@ -445,35 +562,44 @@ class Actor:
             msg_node = msg["node"]
         else:
             msg_node = msg["history"][0]
+
+            # This is a recovery ping.
             ping = self._recover_pings.get(msg_node, None)
             if isinstance(ping, anyio.abc.Event):
+                # We're waiting for this.
                 await ping.set()
             else:
+                # This ping is not expected, but it might have arrived before its cause.
+                # Record that fact so that we don't also send it.
                 self._recover_pings[msg_node] = self._valid_pings
 
         if msg_node == self._name:
             # my own message, returned
             return
 
+        if msg_node == prev_node:
+            # again, from that sender. Ideally that should not happen
+            # because our timeout should be earlier, but Shit Happens.
+            return
+
         self._values[msg_node] = this_val = msg["value"]
 
-        if msg["history"] and msg["history"][0] == self._history[0]:
+        if msg["history"] and (msg["history"][1:2] == self._history[0:1]):
             if "node" in msg:
+                # Standard ping.
                 self._prev_history = self._history
                 self._history += msg_node
                 self._get_next_ping_time()
                 await self._ping_q.put(msg)
             else:
-                # This is a notification ping for our side, after a split.
+                # This is a recovery ping for our side, after a split.
                 # Ignore it: we already initiated recovery when sending the
                 # notification, see below.
                 pass
             return
 
         # Colliding pings.
-        same_prev = msg["history"] and (msg["history"][0:1] == self._history[1:2])
-        # only check one host. This is intentional: the current host may
-        # have been elided from the list which would cause a false conflict.
+        same_prev = msg["history"] and (msg["history"][1:2] == self._history[1:2])
 
         prefer_new = self.has_priority(msg_node, prev_node)
 
@@ -507,7 +633,8 @@ class Actor:
                 h = NodeList(0, msg["history"])
                 if "node" in msg:
                     h += msg["node"]
-                await self._evt_q.put(RecoverEvent(pos, prefer_new, hist, h))
+                if prefer_new or "node" not in msg:
+                    await self._evt_q.put(RecoverEvent(pos, prefer_new, hist, h))
             if pos > -1 and prefer_new:
                 evt = anyio.create_event()
                 await self.spawn(self._send_delay_ping, pos, evt, hist)
@@ -570,10 +697,13 @@ class Actor:
             return a_val > b_val
 
         # Same values: compare nodes
-        assert a != b
+        assert a != b, (a, b)
         return a < b
 
     async def _send_ping(self, history=None):
+        if self._tagged < 0:
+            return
+
         if history is not None:
             msg = {"value": self._values[history[0]]}
         else:

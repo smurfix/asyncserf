@@ -340,7 +340,7 @@ class SerfConnection:
             if sock is not None:
                 await sock.close()
             if reader is not None:
-                reader.cancel()
+                await reader.cancel()
                 reader = None
 
     @property

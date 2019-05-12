@@ -30,7 +30,7 @@ Let's consider a basic example::
         anyio.run(main)
 
 This sample is slightly asocial because it indiscriminately responds to all
-queries (and requests all other events even if it doesn't do anythign with
+queries (and requests all other events even if it doesn't do anything with
 them), but it's immediately obvious what this code is doing.
 
 .. autofunction: asyncserf.serf_client
@@ -41,11 +41,13 @@ them), but it's immediately obvious what this code is doing.
 Multiple concurrent requests
 ---
 
-Async code as you know it heavily leans towards throwing requests over your
-interface's wall and then using callbacks to process any replies. AsyncSerf
-doesn't support that. Instead, you start a new task and do your work there.
-The `asyncserf.Serf` class has a :meth:`Serf.spawn` 
-helper method so that you can start your task within AsyncSerf's task group.
+AsyncSerf subscribes to "Structured Concurrency" paradigm, i.e. each
+requests runs in a separate task; there are no callbacks.
+
+The `asyncserf.Serf` class has a :meth:`Serf.spawn` helper method so that
+you can start your handler tasks within AsyncSerf's task group – they will
+get cancelled along with the rest of the connection's tasks if there is an
+unrecoverable error.
 
 .. automethod:: asyncserf.Serf.spawn
 
@@ -164,7 +166,8 @@ binary strings. As these are inconvenient and rarely what you need,
 AsyncSerf transparently encodes and decodes them with a user-supplied codec.
 
 The codec needs to have ``encode`` and ``decode`` methods which return /
-accept :class:`bytes`. The default is to do nothing.
+accept :class:`bytes`. The default is to do nothing: bytes are
+transported unchanged, anything else will trigger an exception.
 
 .. automodule:: asyncserf.codec
     :members:
