@@ -526,7 +526,7 @@ class Actor:
         if length is not None:
             self._nodes = length
         self._history.maxlen = self._nodes
-        self._get_next_ping_time()
+        await self._send_ping()
 
     async def disable(self, length=0):
         """
@@ -553,6 +553,8 @@ class Actor:
             self._get_next_ping_time()
             await self._ping_q.put(msg)
             return
+
+        # We start off by sending a Ping. Thus our history is not empty.
 
         prev_node = self._history[0]
         this_val = msg["value"]
