@@ -577,6 +577,11 @@ class Actor:
             # my own message, returned
             return
 
+        if msg_node == prev_node:
+            # again, from that sender. Ideally that should not happen
+            # because our timeout should be earlier, but Shit Happens.
+            return
+
         self._values[msg_node] = this_val = msg["value"]
 
         if msg["history"] and (msg["history"][1:2] == self._history[0:1]):
@@ -692,7 +697,7 @@ class Actor:
             return a_val > b_val
 
         # Same values: compare nodes
-        assert a != b
+        assert a != b, (a, b)
         return a < b
 
     async def _send_ping(self, history=None):
