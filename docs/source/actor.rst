@@ -41,6 +41,8 @@ changed by overriding :meth:`Actor.ping_delay`. You're free to base your
 calculation of its return value, which should be between zero and two, on
 whatever information you have for your node.
 
+An actor can be disabled; while it is, it will still send :class:`PingEvent`
+and :class:`RawPingEvent` events but it won't try to participate.
 
 API
 ===
@@ -66,17 +68,17 @@ If you're "it", you get a :class:`TagEvent`.
 .. autoclass:: TagEvent
 
 At the end of the current cycle, you get an :class:`UntagEvent`.
-You should gracefully (i.e. within ``gap`` seconds) stop your activity,
-resp. that part that depends on you being "it".
+You should gracefully (i.e. within at most ``gap`` seconds) stop your
+activity, resp. that part that depends on you being "it".
 
 .. autoclass:: UntagEvent
 
 If there was a network split and the ``ping`` from the former other side
-supersede ours, you get an :class:`UntagEvent`. You should immediately stop
+supersede ours, you get an :class:`UntagEvent`. You should immediately abort
 any activity that depends on you being "it".
 
-You should not start a re-sync, as that's indicated by a
-:class:`RecoverEvent`.
+You should not start a re-sync when you receive this event, as that's
+indicated by a :class:`RecoverEvent`.
 
 .. autoclass:: DetagEvent
 
@@ -97,7 +99,7 @@ before a node may participate. For instance, a node in a key-value storage
 network needs the current state before it may serve clients.
 
 The :class:`GoodNodeEvent` is sent if you didn't call
-:meth:`Actor.set_value`, and a ``ping`` from node with that value set is
+:meth:`Actor.set_value`, and a ``ping`` from a node with that value set is
 seen. This allows you to fetch, from the "good" node, whatever other data
 you need to start operation.
 

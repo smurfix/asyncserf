@@ -20,21 +20,26 @@ class AuthPingEvent(NodeEvent):
 
 
 class TagEvent(AuthPingEvent):
-    """This event says that for the moment, you're "it"."""
+    """
+    This event says that for the moment, you're "it".
+    """
 
     def __repr__(self):
         return "<Tag>"
 
 
 class UntagEvent(NodeEvent):
-    """Your tag cycle time has passed. You're no longer "it"."""
+    """
+    Your tag cycle time has passed. You're no longer "it".
+    """
 
     def __repr__(self):
         return "<UnTag>"
 
 
 class DetagEvent(UntagEvent):
-    """A ping from another node has arrived while you're "it".
+    """
+    A ping from another node has arrived while you're "it".
     Unfortunately, it is "better" than ours.
 
     Arguments:
@@ -49,7 +54,8 @@ class DetagEvent(UntagEvent):
 
 
 class RawPingEvent(NodeEvent):
-    """A ping from another node shows up. Not yet filtered!
+    """
+    A ping from another node shows up. Not yet filtered!
 
     Arguments:
       msg (dict): The ping message of the currently-active actor.
@@ -63,7 +69,8 @@ class RawPingEvent(NodeEvent):
 
 
 class PingEvent(AuthPingEvent):
-    """A ping from another node shows up: the node in ``self.msg['node']`` is "it".
+    """
+    A ping from another node shows up: the node ``.node`` is "it".
 
     Arguments:
       msg (dict): The ping message of the currently-active actor.
@@ -77,14 +84,20 @@ class PingEvent(AuthPingEvent):
 
     @property
     def node(self):
+        """
+        Name of the node. Shortcut to ``msg['node']``.
+        """
         return self.msg["node"]
 
 
 class GoodNodeEvent(NodeEvent):
-    """A known-good node has been seen. We might want to get data from it.
+    """
+    A known-good node has been seen. We might want to get data from it.
 
     Arguments:
       nodes (list(str)): Nodes known to have a non-``None`` value.
+
+    This event is seen while starting up, when our value is ``None``.
     """
 
     def __init__(self, nodes):
@@ -95,11 +108,12 @@ class GoodNodeEvent(NodeEvent):
 
 
 class RecoverEvent(NodeEvent):
-    """We need to recover from a network split.
+    """
+    We need to recover from a network split.
 
     Arguments:
       prio: Our recovery priority. Zero is highest.
-      replace: Flag whether the other side superseded ours.
+      replace: Flag whether the other side has superseded ours.
       local_nodes: A list of recent actors on our side.
       remote_nodes: A list of recent actors on the other side.
     """
@@ -116,8 +130,8 @@ class RecoverEvent(NodeEvent):
 
 class NodeList(list):
     """
-    This is an augmented :class: `list`, used to store a list of unique
-    node names, up to some maximum.
+    This is an augmented :class: `list`, used to store unique node names,
+    up to some maximum (if used).
 
     This is a simplistic implementation. It should not be used for large
     lists.
@@ -313,14 +327,27 @@ class Actor:
 
     @property
     def cycle_time_max(self):
+        """
+        Max time between two ``AuthPingEvent`` messages.
+        """
         return self._cycle + 2.5 * self._gap
 
     @property
     def history_size(self):
+        """
+        The length of the current history.
+        """
         return len(self._history)
 
     @property
     def history_pos(self, node):
+        """
+        Return our position in the current history.
+
+        If we're disabled, always return -1.
+        """
+        if self._tagged < 0:
+            return -1
         try:
             return self._history.index(node)
         except IndexError:
