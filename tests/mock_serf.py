@@ -170,6 +170,7 @@ class MockSerfStream:
         self.q = None
 
     def __aiter__(self):
+        self.q = anyio.create_queue(100)
         return self
 
     async def __anext__(self):
