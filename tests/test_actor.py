@@ -41,7 +41,7 @@ async def test_10_all(autojump_clock):
                     c = 0
                     t = time.time()
                     async for m in k:
-                        if not isinstance(m,RawPingEvent):
+                        if not isinstance(m, RawPingEvent):
                             k.logger.debug("*** MSG %d %r", i, m)
                         ot, t = t, time.time()
                         if ot != t:

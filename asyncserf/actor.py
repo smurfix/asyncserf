@@ -16,6 +16,7 @@ class AuthPingEvent(NodeEvent):
     """
     Superclass for tag and ping: must arrive within :meth:`cycle_time_max` seconds of each other.
     """
+
     pass
 
 
@@ -135,7 +136,12 @@ class RecoverEvent(NodeEvent):
         self.remote_nodes = remote_nodes
 
     def __repr__(self):
-        return "<Recover %d %s %r %r>" % (self.prio, self.replace, self.local_nodes, self.remote_nodes)
+        return "<Recover %d %s %r %r>" % (
+            self.prio,
+            self.replace,
+            self.local_nodes,
+            self.remote_nodes,
+        )
 
 
 class NodeList(list):
@@ -480,14 +486,14 @@ class Actor:
                     t = self._gap
                     self._tagged = 2
                 elif self._tagged == 2:
-                    t = self._cycle - self._gap/2
+                    t = self._cycle - self._gap / 2
                     await self._evt_q.put(TagEvent())
                     self._tagged = 3
                     self._valid_pings += 1
                 elif self._tagged == 3:
                     await self._evt_q.put(UntagEvent())
                     self._tagged = 0
-                    t = self._gap*1.5
+                    t = self._gap * 1.5
                 else:
                     raise RuntimeError("tagged", self._tagged)
             if t <= 0:
@@ -620,7 +626,7 @@ class Actor:
                 h = NodeList(0, msg["history"])
                 if "node" in msg:
                     h += msg["node"]
-                if prefer_new or 'node' not in msg:
+                if prefer_new or "node" not in msg:
                     await self._evt_q.put(RecoverEvent(pos, prefer_new, hist, h))
             if pos > -1 and prefer_new:
                 evt = anyio.create_event()
