@@ -291,6 +291,13 @@ class Actor:
         self._splits = self._cfg["splits"]
         self._n_hosts = self._cfg["n_hosts"]
 
+        if self._cycle < 2:
+            raise ValueError("cycle must be >= 2")
+        if self._gap < 1:
+            raise ValueError("gap must be >= 1")
+        if self._cycle < self._gap:
+            raise ValueError("cycle must be >= gap")
+
         self._evt_q = anyio.create_queue(1)
         self._rdr_q = anyio.create_queue(99)
         self._ping_q = anyio.create_queue(1)
