@@ -280,6 +280,7 @@ class Actor:
         name: str,
         tg: anyio.abc.TaskGroup = None,
         cfg: dict = {},
+        enabled: bool = True,
     ):
         self._client = client
         if tg is None:
@@ -312,7 +313,7 @@ class Actor:
         self._rdr_q = anyio.create_queue(99)
         self._ping_q = anyio.create_queue(1)
         self._ready = False
-        self._tagged = 0  # False: waiting, True: tagged
+        self._tagged = 0 if enabled else -1  # >0: "our" tag is progressing
         self._valid_pings = 0
 
         self._values = {}  # map names to steps
@@ -423,7 +424,7 @@ class Actor:
             async with anyio.move_on_after(self._gap * 2):
                 while True:
                     msg = await self._ping_q.get()
-            if not self._tagged:
+            if self._tagged <= 0:
                 self._valid_pings += 1
                 await self._evt_q.put(PingEvent(msg))
 
@@ -473,8 +474,8 @@ class Actor:
         await self._send_ping()
 
         while True:
-            msg = None
-            if self._tagged:
+            t = 0
+            if self._tagged > 0:
                 if self._tagged == 1:
                     t = self._gap
                     self._tagged = 2
@@ -488,20 +489,63 @@ class Actor:
                     self._tagged = 0
                 else:
                     raise RuntimeError("tagged", self._tagged)
-            if not self._tagged:
+            if t <= 0:
                 t = max(self._next_ping_time - time.time(), 0)
+
+            msg = None
             async with anyio.move_on_after(t):
                 msg = await self._rdr_q.get()
             if msg is None:
                 if self._tagged == 0:
                     await self._send_ping()
+                else:
+                    self._get_next_ping_time()
                 continue
 
             await self._evt_q.put(RawPingEvent(msg))
             await self.process_msg(msg)
 
+    async def enable(self, length=None):
+        """
+        Enable this actor.
+
+        Args:
+          length (int): New max length of the history. Default: Leave alone.
+        """
+        if self._tagged != -1:
+            return
+        self._tagged = 0
+        self._history.clear()
+        if length is not None:
+            self._nodes = length
+        self._history.maxlen = self._nodes
+        self._get_next_ping_time()
+
+    async def disable(self, length=0):
+        """
+        Disable this actor.
+
+        The history length is set to "indefinite" so that a passive node
+        captures whatever is currently going on.
+
+        Args:
+          length (int): New max length of the history. Default: Zero.
+            Set to ``None`` to not change the current size limit.
+        """
+        if self._tagged == 3:
+            await self._evt_q.put(UntagEvent())
+        if length is not None:
+            self._nodes = length
+        self._history.maxlen = length
+        self._tagged = -1
+
     async def process_msg(self, msg):
         """Process this incoming message."""
+
+        if self._tagged < 0:
+            self._get_next_ping_time()
+            await self._ping_q.put(msg)
+            return
 
         prev_node = self._history[0]
         this_val = msg["value"]
@@ -526,7 +570,7 @@ class Actor:
 
         self._values[msg_node] = this_val = msg["value"]
 
-        if msg["history"] and msg["history"][0] == self._history[0]:
+        if msg["history"] and (msg["history"][1:2] == self._history[0:1]):
             if "node" in msg:
                 # Standard ping.
                 self._prev_history = self._history
@@ -644,6 +688,9 @@ class Actor:
         return a < b
 
     async def _send_ping(self, history=None):
+        if self._tagged < 0:
+            return
+
         if history is not None:
             msg = {"value": self._values[history[0]]}
         else:
