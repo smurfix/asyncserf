@@ -586,9 +586,7 @@ class Actor:
             return
 
         # Colliding pings.
-        same_prev = msg["history"] and (msg["history"][0:1] == self._history[1:2])
-        # only check one host. This is intentional: the current host may
-        # have been elided from the list which would cause a false conflict.
+        same_prev = msg["history"] and (msg["history"][1:2] == self._history[1:2])
 
         prefer_new = self.has_priority(msg_node, prev_node)
 
