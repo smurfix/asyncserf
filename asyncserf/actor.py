@@ -800,7 +800,7 @@ class Actor:
         return self.ping_delay(
             s - 1,
             lv,
-            len(self._history) < self._nodes,
+            self._nodes - len(self._history),
             max(len(self._values), self._n_hosts),
         )
 
@@ -818,7 +818,7 @@ class Actor:
           pos: The position of this node in the ping history.
             Zero: at the front. Negative: not in the list.
           length: The total length of the list.
-          todo: True if the number of
+          todo: True if the number of nodes is too low
 
         The default implementation uses ``0.5, 0.75, 0.875, …`` for nodes
         on the list, prioritizing the last node; some value between 0 and
@@ -836,11 +836,12 @@ class Actor:
             # interlopers, below. Otherwise we could divide by l-1, as
             # l must be at least 2. s must also be at least 1.
 
-        if todo:
+        if todo > 0:
             # the chain is too short. Try harder to get onto it.
-            f = 3
+
+            f = todo
         else:
-            f = 10
+            f = total
         if self.random < 1 / f / total:
             # send early (try getting onto the chain)
             return self.random / 3
