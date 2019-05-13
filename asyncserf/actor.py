@@ -479,38 +479,59 @@ class Actor:
         await anyio.sleep((self.random / 2 + 1.5) * self._gap + self._cycle)
         await self._send_ping()
 
+        t_dest = 0
         while True:
-            t = 0
-            if self._tagged > 0:
-                if self._tagged == 1:
-                    t = self._gap
-                    self._tagged = 2
-                elif self._tagged == 2:
-                    t = self._cycle - self._gap / 2
-                    await self._evt_q.put(TagEvent())
-                    self._tagged = 3
-                    self._valid_pings += 1
-                elif self._tagged == 3:
-                    await self._evt_q.put(UntagEvent())
-                    self._tagged = 0
-                    t = self._gap * 1.5
-                else:
-                    raise RuntimeError("tagged", self._tagged)
-            if t <= 0:
+            t_left = t_dest - time.time()
+            if self._tagged == 0:
                 t = max(self._next_ping_time - time.time(), 0)
+            elif t_left <= 0:
+                if self._tagged < 0:
+                    t = 2 * self._gap
+                else:
+                    # Timing Check: G + C-G/2 + G+G/2 == C+2G -- OK
+                    if self._tagged == 1:
+                        t = self._gap
+
+                        self._tagged = 2
+
+                    elif self._tagged == 2:
+                        t = self._cycle - self._gap / 2
+
+                        await self._evt_q.put(TagEvent())
+                        self._tagged = 3
+                        self._valid_pings += 1
+
+                    elif self._tagged == 3:
+                        t = self._gap * 1.5
+
+                        await self._evt_q.put(UntagEvent())
+                        self._tagged = 0
+
+                    else:
+                        raise RuntimeError("tagged", self._tagged)
+                t_dest = t + time.time()
+            else:
+                t = t_left
 
             msg = None
             async with anyio.move_on_after(t):
                 msg = await self._rdr_q.get()
+
             if msg is None:
                 if self._tagged == 0:
                     await self._send_ping()
-                else:
-                    self._get_next_ping_time()
                 continue
 
+            if self._tagged == 1:
+                # If we're about to be tagged and another message arrives,
+                # skip this turn, for added safety.
+                self._tagged = 0
             await self._evt_q.put(RawPingEvent(msg))
-            await self.process_msg(msg)
+
+            if await self.process_msg(msg):
+                if self._tagged == 3:
+                    await self._evt_q.put(UntagEvent())
+                self._tagged = 0
 
     async def enable(self, length=None):
         """
@@ -600,12 +621,12 @@ class Actor:
                 self._history += msg_node
                 self._get_next_ping_time()
                 await self._ping_q.put(msg)
+                return True
             else:
                 # This is a recovery ping for our side, after a split.
                 # Ignore it: we already initiated recovery when sending the
                 # notification, see below.
-                pass
-            return
+                return
 
         # Colliding pings.
         same_prev = msg["history"] and (msg["history"][1:2] == self._history[1:2])
@@ -614,9 +635,8 @@ class Actor:
 
         hist = NodeList(0, self._history)
         if prefer_new:
-            self._history = NodeList(self._nodes, msg["history"])  # self._prev_history
-            if "node" in msg:
-                self._history += msg["node"]
+            nh = NodeList(self._nodes, msg["history"])  # self._prev_history
+            self._history = nh
 
             if self._tagged:
                 if self._tagged == 3:
@@ -628,7 +648,7 @@ class Actor:
 
         if same_prev:
             # These pings refer to the same previous ping. Good.
-            return
+            return prefer_new
 
         # We either have a healed network split (bad) or are new (oh well).
 
@@ -648,6 +668,8 @@ class Actor:
                 evt = anyio.create_event()
                 await self.spawn(self._send_delay_ping, pos, evt, hist)
                 await evt.wait()
+
+        return prefer_new
 
     def get_value(self, node):
         """
