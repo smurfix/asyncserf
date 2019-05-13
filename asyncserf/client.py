@@ -93,7 +93,7 @@ class Serf:
           a cancel scope you can use to stop the task.
         """
 
-        async def _run(proc, args, kw, *, result=None):
+        async def _run(proc, args, kw, result):
             """
             Helper for starting a task.
 
@@ -106,7 +106,7 @@ class Serf:
                 await proc(*args, **kw)
 
         res = ValueEvent()
-        await self.tg.spawn(_run, proc, args, kw, result=res)
+        await self.tg.spawn(_run, proc, args, kw, res)
         return await res.get()
 
     async def cancel(self):
