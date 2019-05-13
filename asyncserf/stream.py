@@ -35,7 +35,7 @@ class SerfStream:
         return self
 
     async def __aexit__(self, *tb):
-        await self._ctx.__aexit__(*tb)
+        await self.stream.__aexit__(*tb)
         self._ctx = None
 
     def __aiter__(self):

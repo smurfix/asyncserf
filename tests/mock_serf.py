@@ -12,6 +12,7 @@ from functools import partial
 
 import asyncserf.client
 from asyncserf.util import ValueEvent
+from asyncserf.stream import SerfEvent
 
 import logging
 
@@ -131,14 +132,17 @@ class MockSerf:
         await self._tg.spawn(run, evt)
         return await evt.get()
 
-    def serf_mon(self, typ):
+    def stream(self, typ):
         if "," in typ:
             raise RuntimeError("not supported")
+        if not typ.startswith("user:"):
+            raise RuntimeError("not supported")
+        typ = typ[5:]
         s = MockSerfStream(self, typ)
         return s
 
-    async def serf_send(self, typ, data):
-        # logger.debug("SERF>%s> %r", typ, data)
+    async def event(self, typ, payload):
+        # logger.debug("SERF>%s> %r", typ, payload)
 
         for s in list(self._master.serfs):
             for x in self._master.splits:
@@ -148,7 +152,7 @@ class MockSerf:
                 sl = s.streams.get(typ, None)
                 if sl is not None:
                     for s in sl:
-                        await s.q.put(data)
+                        await s.q.put(payload)
 
 
 class MockSerfStream:
@@ -176,4 +180,6 @@ class MockSerfStream:
     async def __anext__(self):
         res = await self.q.get()
         # logger.debug("SERF<%s< %r", self.typ, res)
-        return dict(data=res)
+        evt = SerfEvent(self)
+        evt.payload = res
+        return evt
