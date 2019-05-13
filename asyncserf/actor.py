@@ -470,7 +470,7 @@ class Actor:
         self._ready = True
 
     async def _read(self, evt: anyio.abc.Event = None):
-        async with self._client.serf_mon(self._prefix) as mon:
+        async with self._client.stream("user:"+self._prefix) as mon:
             await evt.set()
             async for msg in mon:
                 await self._rdr_q.put(msg["data"])
@@ -736,7 +736,7 @@ class Actor:
             self._history += self._name
             self._get_next_ping_time()
         msg["history"] = history[0 : self._splits]  # noqa: E203
-        await self._client.serf_send(self._prefix, msg)
+        await self._client.event(self._prefix, msg)
 
     async def _send_delay_ping(self, pos, evt, history):
         node = history[0]
