@@ -9,8 +9,8 @@ from asyncserf import UTF8Codec, serf_client
 class TestSerfStream:
     async def send_data(self):
         async with serf_client() as serf:
-            assert (await serf.event("foo", "bar")).head == {b"Error": b"", b"Seq": 1}
-            assert (await serf.event("bill", "gates")).head == {
+            assert (await serf.event("foo", b"bar")).head == {b"Error": b"", b"Seq": 1}
+            assert (await serf.event("bill", b"gates")).head == {
                 b"Error": b"",
                 b"Seq": 2,
             }
@@ -80,8 +80,8 @@ class TestSerfMonitor:
     @pytest.mark.anyio
     async def test_sending_a_simple_event(self):
         async with serf_client() as serf:
-            assert (await serf.event("foo", "bar")).head == {b"Error": b"", b"Seq": 1}
-            assert (await serf.event("bill", "gates")).head == {
+            assert (await serf.event("foo", b"bar")).head == {b"Error": b"", b"Seq": 1}
+            assert (await serf.event("bill", b"gates")).head == {
                 b"Error": b"",
                 b"Seq": 2,
             }

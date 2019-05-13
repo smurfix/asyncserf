@@ -36,12 +36,12 @@ class TestSerfCommands:
     @pytest.mark.anyio
     async def test_sending_a_simple_event(self):
         async with serf_client() as serf:
-            assert (await serf.event("foo", "bar")).head == {b"Error": b"", b"Seq": 1}
+            assert (await serf.event("foo", b"bar")).head == {b"Error": b"", b"Seq": 1}
 
     @pytest.mark.anyio
     async def test_sending_a_non_coalescing_event(self):
         async with serf_client() as serf:
-            assert (await serf.event("foo", "bar")).head == {b"Error": b"", b"Seq": 1}
+            assert (await serf.event("foo", b"bar")).head == {b"Error": b"", b"Seq": 1}
 
     @pytest.mark.anyio
     async def test_event_payload_is_optional(self):
