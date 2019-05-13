@@ -289,8 +289,8 @@ class Actor:
         tg: anyio.abc.TaskGroup = None,
         cfg: dict = {},
         enabled: bool = True,
-        packer = None,
-        unpacker = None,
+        packer=None,
+        unpacker=None,
     ):
         self._client = client
         if tg is None:
@@ -305,9 +305,7 @@ class Actor:
         if packer is None:
             packer = msgpack.Packer(strict_types=False, use_bin_type=True).pack
         if unpacker is None:
-            unpacker = partial(
-                msgpack.unpackb, raw=False, use_list=False
-            )
+            unpacker = partial(msgpack.unpackb, raw=False, use_list=False)
         self._packer = packer
         self._unpacker = unpacker
         self._cfg = {}
@@ -482,7 +480,7 @@ class Actor:
         self._ready = True
 
     async def _read(self, evt: anyio.abc.Event = None):
-        async with self._client.stream("user:"+self._prefix) as mon:
+        async with self._client.stream("user:" + self._prefix) as mon:
             await evt.set()
             async for msg in mon:
                 await self._rdr_q.put(self._unpacker(msg.payload))

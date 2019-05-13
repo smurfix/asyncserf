@@ -135,7 +135,7 @@ class MockSerf:
     def stream(self, typ):
         if "," in typ:
             raise RuntimeError("not supported")
-        if not typ.startswith('user:'):
+        if not typ.startswith("user:"):
             raise RuntimeError("not supported")
         typ = typ[5:]
         s = MockSerfStream(self, typ)
@@ -181,5 +181,5 @@ class MockSerfStream:
         res = await self.q.get()
         # logger.debug("SERF<%s< %r", self.typ, res)
         evt = SerfEvent(self)
-        evt.payload=res
+        evt.payload = res
         return evt
