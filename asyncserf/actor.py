@@ -3,6 +3,8 @@ import time
 from random import Random
 import os
 import logging
+import msgpack
+from functools import partial
 
 from .client import Serf
 from asyncserf.util import ValueEvent
@@ -287,6 +289,8 @@ class Actor:
         tg: anyio.abc.TaskGroup = None,
         cfg: dict = {},
         enabled: bool = True,
+        packer = None,
+        unpacker = None,
     ):
         self._client = client
         if tg is None:
@@ -298,6 +302,14 @@ class Actor:
             "asyncserf.actor.%s.%s" % (self._prefix, self._name)
         )
 
+        if packer is None:
+            packer = msgpack.Packer(strict_types=False, use_bin_type=True).pack
+        if unpacker is None:
+            unpacker = partial(
+                msgpack.unpackb, raw=False, use_list=False
+            )
+        self._packer = packer
+        self._unpacker = unpacker
         self._cfg = {}
         self._cfg.update(self.DEFAULTS)
         self._cfg.update(cfg)
@@ -473,7 +485,7 @@ class Actor:
         async with self._client.stream("user:"+self._prefix) as mon:
             await evt.set()
             async for msg in mon:
-                await self._rdr_q.put(msg["data"])
+                await self._rdr_q.put(self._unpacker(msg.payload))
 
     async def _run(self):
         await anyio.sleep((self.random / 2 + 1.5) * self._gap + self._cycle)
@@ -613,7 +625,7 @@ class Actor:
                 )
             )
 
-        if msg["history"] and (msg["history"][1:2] == self._history[0:1]):
+        if msg["history"] and (list(msg["history"][1:2]) == self._history[0:1]):
             if "node" in msg:
                 # Standard ping.
                 self._prev_history = self._history
@@ -628,7 +640,7 @@ class Actor:
                 return
 
         # Colliding pings.
-        same_prev = msg["history"] and (msg["history"][1:2] == self._history[1:2])
+        same_prev = msg["history"] and (list(msg["history"][1:2]) == self._history[1:2])
 
         prefer_new = self.has_priority(msg_node, prev_node)
 
@@ -736,7 +748,7 @@ class Actor:
             self._history += self._name
             self._get_next_ping_time()
         msg["history"] = history[0 : self._splits]  # noqa: E203
-        await self._client.event(self._prefix, msg)
+        await self._client.event(self._prefix, self._packer(msg))
 
     async def _send_delay_ping(self, pos, evt, history):
         node = history[0]

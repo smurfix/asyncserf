@@ -12,6 +12,7 @@ from functools import partial
 
 import asyncserf.client
 from asyncserf.util import ValueEvent
+from asyncserf.stream import SerfEvent
 
 import logging
 
@@ -179,4 +180,6 @@ class MockSerfStream:
     async def __anext__(self):
         res = await self.q.get()
         # logger.debug("SERF<%s< %r", self.typ, res)
-        return dict(data=res)
+        evt = SerfEvent(self)
+        evt.payload=res
+        return evt
