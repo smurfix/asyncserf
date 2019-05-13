@@ -28,21 +28,30 @@ are resolved deterministically.
 The default mechanism compares a ``value`` parameter that's set by
 :meth:`Actor.set_value` and sent along with the ``ping``, or (if these
 happen to be equal) by simply comparing the node names (which must not be
-equal). It may be changed by overriding :meth:`Actor.has_priority`.
+equal).
 
 This algorithm intentionally does not require timestamps or similar means
 of resolving a collision. If required, you can use them as (part of) the
-``value``.
+value.
+
+The resolution method may be changed, if necessary, by overriding
+:meth:`Actor.has_priority`.
 
 Depending on the parameters, the default implementation randomly selects a
 number of participating actors and round-robins the "it" role between them.
-Occasionally, an actor that's not in the group may butt in. This can be
-changed by overriding :meth:`Actor.ping_delay`. You're free to base your
-calculation of its return value, which should be between zero and two, on
-whatever information you have for your node.
+The value does **not** determine which nodes are actors; it is only used for
+conflict resolution in case of a collision.
 
-An actor can be disabled; while it is, it will still send :class:`PingEvent`
-and :class:`RawPingEvent` events but it won't try to participate.
+Occasionally, an actor that's not in the group may butt in. This can be
+changed by overriding :meth:`Actor.ping_delay`. You're free to base its
+return value, which should be between zero and two, on whatever information
+you have for your node.
+
+An actor can be disabled; while it is, it will still generate
+:class:`PingEvent` and :class:`RawPingEvent` events but it won't try to
+participate in the protocol. You can use this to selectively enable or
+disable actors if you want e.g. to only let the highest-priority actors
+be *it*.
 
 API
 ===
@@ -62,6 +71,13 @@ delayed to protect against collisions, so that you should only get one of
 these events per cycle.
 
 .. autoclass:: PingEvent
+
+A :class:`RawPingEvent`, on the other hand, is triggered as soon as a
+message from another participant arrives. These events may appear at any
+time, particularly when resolving network splits; you may analyze their
+contents, but shouldn't change your program flow at the time they arrive.
+
+.. autoclass:: RawPingEvent
 
 If you're "it", you get a :class:`TagEvent`.
 
