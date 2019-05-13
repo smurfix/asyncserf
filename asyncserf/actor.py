@@ -804,6 +804,9 @@ class Actor:
             max(len(self._values), self._n_hosts),
         )
 
+    def _skip_check(self):
+        return False
+
     def ping_delay(self, pos, length, todo, total):
         """
         Calculates the time until sending the next ping.
@@ -839,6 +842,9 @@ class Actor:
         if todo > 0:
             # the chain is too short. Try harder to get onto it.
 
+            # This is mockable for testing
+            if self._skip_check():
+                return 0
             f = todo
         else:
             f = total
