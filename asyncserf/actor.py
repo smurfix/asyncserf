@@ -481,9 +481,12 @@ class Actor:
 
     async def _read(self, evt: anyio.abc.Event = None):
         async with self._client.stream("user:" + self._prefix) as mon:
+            self.logger.debug("start listening")
             await evt.set()
             async for msg in mon:
-                await self._rdr_q.put(self._unpacker(msg.payload))
+                msg = self._unpacker(msg.payload)
+                self.logger.debug("recv %r", msg)
+                await self._rdr_q.put(msg)
 
     async def _run(self):
         await anyio.sleep((self.random / 2 + 1.5) * self._gap + self._cycle)
@@ -746,6 +749,7 @@ class Actor:
             self._history += self._name
             self._get_next_ping_time()
         msg["history"] = history[0 : self._splits]  # noqa: E203
+        self.logger.debug("send %r", msg)
         await self._client.event(self._prefix, self._packer(msg))
 
     async def _send_delay_ping(self, pos, evt, history):
