@@ -625,7 +625,7 @@ class Actor:
             # The other node is ready
             await self._evt_q.put(
                 GoodNodeEvent(
-                    list(h for h in msg["history"] if self._values[h] is not None)
+                    list(h for h in msg["history"] if self._values.get(h, None) is not None)
                 )
             )
 
