@@ -428,7 +428,7 @@ class Actor:
         if self._worker is not None or self._reader is not None:
             raise RuntimeError("You can't enter me twice")
         evt = anyio.create_event()
-        self._reader = await self.spawn(self._read, evt)
+        self._reader = await self.spawn(self.read_task, self._prefix, evt)
         await evt.wait()
         self._worker = await self.spawn(self._run)
         self._pinger = await self.spawn(self._ping)
@@ -479,8 +479,11 @@ class Actor:
         """
         self._ready = True
 
-    async def _read(self, evt: anyio.abc.Event = None):
-        async with self._client.stream("user:" + self._prefix) as mon:
+    async def read_task(self, prefix: str, evt: anyio.abc.Event = None):
+        """
+        Reader task. Override e.g. if you have a Serf middleman.
+        """
+        async with self._client.stream("user:" + prefix) as mon:
             self.logger.debug("start listening")
             await evt.set()
             async for msg in mon:
@@ -750,7 +753,13 @@ class Actor:
             self._get_next_ping_time()
         msg["history"] = history[0 : self._splits]  # noqa: E203
         self.logger.debug("send %r", msg)
-        await self._client.event(self._prefix, self._packer(msg))
+        await self.send_event(self._prefix, msg)
+
+    async def send_event(self, prefix, msg):
+        """
+        Send a message. Override e.g. if you have a middleman.
+        """
+        await self._client.event(prefix, self._packer(msg))
 
     async def _send_delay_ping(self, pos, evt, history):
         node = history[0]
