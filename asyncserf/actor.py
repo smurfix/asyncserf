@@ -489,7 +489,7 @@ class Actor:
             await evt.set()
             async for msg in mon:
                 msg = self._unpacker(msg.payload)
-                self.logger.debug("recv %r", msg)
+                # self.logger.debug("recv %r", msg)
                 await self._rdr_q.put(msg)
 
     async def _run(self):
@@ -766,7 +766,6 @@ class Actor:
             self._history += self._name
             self._get_next_ping_time()
         msg["history"] = history[0 : self._splits]  # noqa: E203
-        self.logger.debug("send %r", msg)
         await self.send_event(self._prefix, msg)
 
     async def send_event(self, prefix, msg):
