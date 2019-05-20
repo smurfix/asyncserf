@@ -34,3 +34,11 @@ class SerfTimeoutError(SerfError):
     """
 
     pass
+
+
+class SerfCollisionError(SerfError):
+    """
+    Exception raised when an actor sees another with the same name.
+    """
+
+    pass

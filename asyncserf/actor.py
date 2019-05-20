@@ -7,7 +7,7 @@ import msgpack
 from functools import partial
 
 from .client import Serf
-from .exceptions import SerfTimeoutError
+from .exceptions import SerfTimeoutError, SerfCollisionError
 from asyncserf.util import ValueEvent
 
 
@@ -513,13 +513,12 @@ class Actor:
                 # This is a Hello message
                 if self._self_seen:
                     # We may see our own Hello only once
-                    raise CollisionError()
+                    raise SerfCollisionError()
                 self._self_seen = True
             return  # sent by us
         if "history" not in msg:
             return  # somebody else's Ping
         await self._rdr_q.put(msg)
-
 
     async def _run(self):
         """
@@ -527,7 +526,6 @@ class Actor:
         await self._send_ping(False)
         await anyio.sleep((self.random / 2 + 1.5) * self._gap + self._cycle)
         if not self._self_seen:
-            # 
             raise SerfTimeoutError()
         await self._send_ping()
 
@@ -663,7 +661,11 @@ class Actor:
             # The other node is ready
             await self._evt_q.put(
                 GoodNodeEvent(
-                    list(h for h in msg["history"] if self._values.get(h, None) is not None)
+                    list(
+                        h
+                        for h in msg["history"]
+                        if self._values.get(h, None) is not None
+                    )
                 )
             )
 
