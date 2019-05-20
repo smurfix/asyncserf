@@ -607,11 +607,8 @@ class Actor:
 
         prev_node = self._history[0]
         this_val = msg["value"]
-        if "node" in msg:
-            msg_node = msg["node"]
-        else:
-            msg_node = msg["history"][0]
 
+        if "node" in msg:
             # This is a recovery ping.
             ping = self._recover_pings.get(msg_node, None)
             if isinstance(ping, anyio.abc.Event):
