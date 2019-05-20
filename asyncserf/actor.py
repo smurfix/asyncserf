@@ -777,7 +777,7 @@ class Actor:
         if (
             isinstance(ping, anyio.abc.Event)
             or isinstance(ping, int)
-            and ping >= self._valid_pings - self._nodes / 2
+            and ping < self._valid_pings - self._nodes / 2
         ):
             if isinstance(ping, int):
                 del self._recover_pings[node]
