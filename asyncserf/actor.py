@@ -686,9 +686,8 @@ class Actor:
                 h = NodeList(0, msg["history"])
                 if "node" in msg:
                     h += msg["node"]
-                if prefer_new or "node" not in msg:
-                    await self._evt_q.put(RecoverEvent(pos, prefer_new, hist, h))
-            if pos > -1 and prefer_new:
+                await self._evt_q.put(RecoverEvent(pos, prefer_new, hist, h))
+
                 evt = anyio.create_event()
                 await self.spawn(self._send_delay_ping, pos, evt, hist)
                 await evt.wait()
