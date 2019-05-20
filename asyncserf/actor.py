@@ -317,6 +317,7 @@ class Actor:
         self._nodes = self._cfg["nodes"]
         self._splits = self._cfg["splits"]
         self._n_hosts = self._cfg["n_hosts"]
+        self._self_seen = False
 
         if self._cycle < 2:
             raise ValueError("cycle must be >= 2")
@@ -586,6 +587,17 @@ class Actor:
     async def process_msg(self, msg):
         """Process this incoming message."""
 
+        if "node" in msg:
+            msg_node = msg["node"]
+            if "history" not in msg:
+                # This is a Hello message
+                if self._self_seen:
+                    raise CollisionError()
+                self._self_seen = True
+                return
+        else:
+            msg_node = msg["history"][0]
+
         if self._tagged < 0:
             self._get_next_ping_time()
             await self._ping_q.put(msg)
@@ -741,7 +753,9 @@ class Actor:
         if self._tagged < 0:
             return
 
-        if history is not None:
+        if history is False:
+            msg = {}
+        elif history is not None:
             msg = {"value": self._values[history[0]]}
         else:
             msg = {"node": self._name, "value": self._value}
