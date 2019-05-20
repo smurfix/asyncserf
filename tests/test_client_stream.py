@@ -23,10 +23,13 @@ class TestSerfStream:
                 assert response.head == {b"Error": b"", b"Seq": 1}
                 expected_data = sorted([["bill", "gates"], ["foo", "bar"]])
                 all_responses = []
-                async for resp in response:
-                    all_responses.append(resp)
-                    if len(all_responses) == 2:
-                        break
+                while len(all_responses) < 2:
+                    try:
+                        async for resp in response:
+                            all_responses.append(resp)
+                            break
+                    except UnicodeDecodeError:
+                        pass
 
             sorted_responses = sorted(
                 [[res.name, res.payload] for res in all_responses]
