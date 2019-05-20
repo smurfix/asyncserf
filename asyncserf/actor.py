@@ -7,6 +7,7 @@ import msgpack
 from functools import partial
 
 from .client import Serf
+from .exceptions import SerfTimeoutError
 from asyncserf.util import ValueEvent
 
 
@@ -317,6 +318,7 @@ class Actor:
         self._nodes = self._cfg["nodes"]
         self._splits = self._cfg["splits"]
         self._n_hosts = self._cfg["n_hosts"]
+        self._self_seen = False
 
         if self._cycle < 2:
             raise ValueError("cycle must be >= 2")
@@ -424,6 +426,20 @@ class Actor:
         await self._tg.spawn(_run, proc, args, kw, res)
         return await res.get()
 
+    async def _ping(self):
+        """
+        This subtask generates :cls:`PingEvent` messages. It ensures that
+        there's exactly one PingEvent per cycle, if possible.
+        """
+        while True:
+            msg = await self._ping_q.get()
+            async with anyio.move_on_after(self._gap * 2):
+                while True:
+                    msg = await self._ping_q.get()
+            if self._tagged <= 0:
+                self._valid_pings += 1
+                await self._evt_q.put(PingEvent(msg))
+
     async def __aenter__(self):
         if self._worker is not None or self._reader is not None:
             raise RuntimeError("You can't enter me twice")
@@ -433,16 +449,6 @@ class Actor:
         self._worker = await self.spawn(self._run)
         self._pinger = await self.spawn(self._ping)
         return self
-
-    async def _ping(self):
-        while True:
-            msg = await self._ping_q.get()
-            async with anyio.move_on_after(self._gap * 2):
-                while True:
-                    msg = await self._ping_q.get()
-            if self._tagged <= 0:
-                self._valid_pings += 1
-                await self._evt_q.put(PingEvent(msg))
 
     async def __aexit__(self, *tb):
         async with anyio.open_cancel_scope(shield=True):
@@ -473,7 +479,7 @@ class Actor:
     def set_ready(self):
         """
         Set a flag to indicate that the client is fully operational and
-        should participate actively.
+        this node should participate actively.
 
         You *must* call this.
         """
@@ -482,17 +488,47 @@ class Actor:
     async def read_task(self, prefix: str, evt: anyio.abc.Event = None):
         """
         Reader task. Override e.g. if you have a Serf middleman.
+
+        Call :meth:`queue_msg` with each incoming message.
         """
         async with self._client.stream("user:" + prefix) as mon:
             self.logger.debug("start listening")
             await evt.set()
             async for msg in mon:
                 msg = self._unpacker(msg.payload)
-                self.logger.debug("recv %r", msg)
-                await self._rdr_q.put(msg)
+                # self.logger.debug("recv %r", msg)
+                await self.queue_msg(msg)
+
+    async def queue_msg(self, msg):
+        """
+        Enqueue method.
+
+        Call this from your override of :meth:`read_task`
+        with each incoming message.
+        """
+        self.logger.debug("IN %s %r", self._name, msg)
+        node = msg.get("node", None)
+        if node is not None and node == self._name:
+            if "history" not in msg:
+                # This is a Hello message
+                if self._self_seen:
+                    # We may see our own Hello only once
+                    raise CollisionError()
+                self._self_seen = True
+            return  # sent by us
+        if "history" not in msg:
+            return  # somebody else's Ping
+        await self._rdr_q.put(msg)
+
 
     async def _run(self):
+        """
+        """
+        await self._send_ping(False)
         await anyio.sleep((self.random / 2 + 1.5) * self._gap + self._cycle)
+        if not self._self_seen:
+            # 
+            raise SerfTimeoutError()
         await self._send_ping()
 
         t_dest = 0
@@ -586,6 +622,11 @@ class Actor:
     async def process_msg(self, msg):
         """Process this incoming message."""
 
+        if "node" in msg:
+            msg_node = msg["node"]
+        else:
+            msg_node = msg["history"][0]
+
         if self._tagged < 0:
             self._get_next_ping_time()
             await self._ping_q.put(msg)
@@ -595,11 +636,8 @@ class Actor:
 
         prev_node = self._history[0]
         this_val = msg["value"]
-        if "node" in msg:
-            msg_node = msg["node"]
-        else:
-            msg_node = msg["history"][0]
 
+        if "node" in msg:
             # This is a recovery ping.
             ping = self._recover_pings.get(msg_node, None)
             if isinstance(ping, anyio.abc.Event):
@@ -625,7 +663,7 @@ class Actor:
             # The other node is ready
             await self._evt_q.put(
                 GoodNodeEvent(
-                    list(h for h in msg["history"] if self._values[h] is not None)
+                    list(h for h in msg["history"] if self._values.get(h, None) is not None)
                 )
             )
 
@@ -677,9 +715,8 @@ class Actor:
                 h = NodeList(0, msg["history"])
                 if "node" in msg:
                     h += msg["node"]
-                if prefer_new or "node" not in msg:
-                    await self._evt_q.put(RecoverEvent(pos, prefer_new, hist, h))
-            if pos > -1 and prefer_new:
+                await self._evt_q.put(RecoverEvent(pos, prefer_new, hist, h))
+
                 evt = anyio.create_event()
                 await self.spawn(self._send_delay_ping, pos, evt, hist)
                 await evt.wait()
@@ -738,21 +775,23 @@ class Actor:
         return a < b
 
     async def _send_ping(self, history=None):
-        if self._tagged < 0:
-            return
-
-        if history is not None:
-            msg = {"value": self._values[history[0]]}
+        if history is False:
+            msg = {"node": self._name}
         else:
-            msg = {"node": self._name, "value": self._value}
-            self._values[self._name] = self._value
-            if self._history:
-                self._tagged = 1
-            history = self._prev_history = self._history
-            self._history += self._name
-            self._get_next_ping_time()
-        msg["history"] = history[0 : self._splits]  # noqa: E203
-        self.logger.debug("send %r", msg)
+            if self._tagged < 0:
+                return
+
+            if history is not None:
+                msg = {"value": self._values[history[0]]}
+            else:
+                msg = {"node": self._name, "value": self._value}
+                self._values[self._name] = self._value
+                if self._history:
+                    self._tagged = 1
+                history = self._prev_history = self._history
+                self._history += self._name
+                self._get_next_ping_time()
+            msg["history"] = history[0 : self._splits]  # noqa: E203
         await self.send_event(self._prefix, msg)
 
     async def send_event(self, prefix, msg):
@@ -767,7 +806,7 @@ class Actor:
         if (
             isinstance(ping, anyio.abc.Event)
             or isinstance(ping, int)
-            and ping >= self._valid_pings - self._nodes / 2
+            and ping < self._valid_pings - self._nodes / 2
         ):
             if isinstance(ping, int):
                 del self._recover_pings[node]

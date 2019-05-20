@@ -26,3 +26,11 @@ class SerfClosedError(SerfError):
     """
 
     pass
+
+
+class SerfTimeoutError(SerfError):
+    """
+    Exception raised when we get no timely reply from Serf.
+    """
+
+    pass
