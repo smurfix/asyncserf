@@ -438,7 +438,7 @@ class Actor:
                     msg = await self._ping_q.get()
             if self._tagged <= 0:
                 self._valid_pings += 1
-                await self._evt_q.put(PingEvent(msg))
+                await self.post_event(PingEvent(msg))
 
     async def __aenter__(self):
         if self._worker is not None or self._reader is not None:
@@ -547,14 +547,14 @@ class Actor:
                     elif self._tagged == 2:
                         t = self._cycle - self._gap / 2
 
-                        await self._evt_q.put(TagEvent())
+                        await self.post_event(TagEvent())
                         self._tagged = 3
                         self._valid_pings += 1
 
                     elif self._tagged == 3:
                         t = self._gap * 1.5
 
-                        await self._evt_q.put(UntagEvent())
+                        await self.post_event(UntagEvent())
                         self._tagged = 0
 
                     else:
@@ -576,11 +576,11 @@ class Actor:
                 # If we're about to be tagged and another message arrives,
                 # skip this turn, for added safety.
                 self._tagged = 0
-            await self._evt_q.put(RawPingEvent(msg))
+            await self.post_event(RawPingEvent(msg))
 
             if await self.process_msg(msg):
                 if self._tagged == 3:
-                    await self._evt_q.put(UntagEvent())
+                    await self.post_event(UntagEvent())
                 self._tagged = 0
 
     async def enable(self, length=None):
@@ -611,7 +611,7 @@ class Actor:
             Set to ``None`` to not change the current size limit.
         """
         if self._tagged == 3:
-            await self._evt_q.put(UntagEvent())
+            await self.post_event(UntagEvent())
         if length is not None:
             self._nodes = length
         self._history.maxlen = length
@@ -659,7 +659,7 @@ class Actor:
 
         if self._value is None and this_val is not None:
             # The other node is ready
-            await self._evt_q.put(
+            await self.post_event(
                 GoodNodeEvent(
                     list(
                         h
@@ -695,7 +695,7 @@ class Actor:
 
             if self._tagged:
                 if self._tagged == 3:
-                    await self._evt_q.put(DetagEvent(msg_node))
+                    await self.post_event(DetagEvent(msg_node))
                 self._tagged = 0
 
             self._get_next_ping_time()
@@ -717,13 +717,25 @@ class Actor:
                 h = NodeList(0, msg["history"])
                 if "node" in msg:
                     h += msg["node"]
-                await self._evt_q.put(RecoverEvent(pos, prefer_new, hist, h))
+                await self.post_event(RecoverEvent(pos, prefer_new, hist, h))
 
                 evt = anyio.create_event()
                 await self.spawn(self._send_delay_ping, pos, evt, hist)
                 await evt.wait()
 
         return prefer_new
+
+    async def post_event(self, event):
+        """
+        Send this event to the main loop. The event will
+        be returned by this Actor's async iterator.
+
+        Args:
+          event: The event to forward.
+
+        You may use this for your own events.
+        """
+        await self._evt_q.put(event)
 
     def get_value(self, node):
         """
