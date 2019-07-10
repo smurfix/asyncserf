@@ -819,7 +819,7 @@ class Actor:
         """
         Send a message. Override e.g. if you have a middleman.
         """
-        await self._client.event(prefix, self._packer(msg))
+        await self._client.event(prefix, self._packer(msg), coalesce=False)
 
     async def _send_delay_ping(self, pos, evt, history):
         node = history[0]
