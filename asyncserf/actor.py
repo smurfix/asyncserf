@@ -18,6 +18,9 @@ class NodeEvent:
 class AuthPingEvent(NodeEvent):
     """
     Superclass for tag and ping: must arrive within :meth:`cycle_time_max` seconds of each other.
+
+    Non-abstract subclasses of this must have ``name`` and ``value`` attributes.
+    (TODO: enforce this)
     """
 
     pass
@@ -27,6 +30,10 @@ class TagEvent(AuthPingEvent):
     """
     This event says that for the moment, you're "it".
     """
+
+    def __init__(self, name, value):
+        self.node = name
+        self.value = value
 
     def __repr__(self):
         return "<Tag>"
@@ -547,7 +554,7 @@ class Actor:
                     elif self._tagged == 2:
                         t = self._cycle - self._gap / 2
 
-                        await self.post_event(TagEvent())
+                        await self.post_event(TagEvent(self._name, self._value))
                         self._tagged = 3
                         self._valid_pings += 1
 
