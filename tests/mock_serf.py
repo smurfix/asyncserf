@@ -141,9 +141,10 @@ class MockSerf:
         s = MockSerfStream(self, typ)
         return s
 
-    async def event(self, typ, payload):
+    async def event(self, typ, payload, coalesce=True):
         # logger.debug("SERF>%s> %r", typ, payload)
 
+        assert not coalesce
         for s in list(self._master.serfs):
             for x in self._master.splits:
                 if (s.cfg.get("i", 0) < x) != (self.cfg.get("i", 0) < x):
