@@ -2,7 +2,10 @@ Source: asyncserf
 Maintainer: Matthias Urlichs <matthias@urlichs.de>
 Section: python
 Priority: optional
-Build-Depends: dh-python, python3-setuptools, python3-all, debhelper (>= 9)
+Build-Depends: dh-python, python3-setuptools, python3-all, debhelper (>= 9),
+  python3-pytest-cov,
+  python3-trio,
+  python3-anyio,
 Standards-Version: 3.9.6
 Homepage: https://github.com/smurfix/asyncserf
 
@@ -10,6 +13,7 @@ Package: python3-asyncserf
 Architecture: all
 Depends: ${misc:Depends}, ${python3:Depends},
   python3-trio,
+  python3-anyio,
 Description: Python client for the Serf orchestration tool
  AsyncSerf is an async Python interface to Serf, the decentralised solution
  for service discovery and orchestration.
