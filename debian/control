@@ -3,6 +3,7 @@ Maintainer: Matthias Urlichs <matthias@urlichs.de>
 Section: python
 Priority: optional
 Build-Depends: dh-python, python3-setuptools, python3-all, debhelper (>= 9),
+  python3-setuptools-scm,
   python3-pytest-cov,
   python3-trio,
   python3-anyio,
