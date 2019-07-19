@@ -293,7 +293,7 @@ class SerfConnection:
 
                     for msg in unpacker:
                         if cur_msg is not None:
-                            logger.debug("%d  Body=%s", self._conn_id, msg)
+                            logger.debug("%d::Body=%s", self._conn_id, msg)
                             cur_msg.body = msg
                             await self._handle_msg(cur_msg)
                             cur_msg = None
