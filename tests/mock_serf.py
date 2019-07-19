@@ -113,7 +113,7 @@ async def mock_serf_client(master, **cfg):
 class MockSerf:
     def __init__(self, tg, master, **cfg):
         self.cfg = cfg
-        self._tg = tg
+        self.tg = tg
         self.streams = {}
         self._master = master
 
