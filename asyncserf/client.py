@@ -8,6 +8,7 @@ try:
     from contextlib import asynccontextmanager
 except ImportError:
     from async_generator import asynccontextmanager
+import functools
 
 from .codec import NoopCodec
 from .connection import SerfConnection
@@ -30,6 +31,14 @@ async def serf_client(**kw):
         async with client._connected():  # noqa:E501 pylint:disable=not-async-context-manager,protected-access
             yield client
             await tg.cancel_scope.cancel()
+
+def check_conn(proc):
+    @functools.wraps(proc)
+    def _chk(self, *a, **k):
+        if self._conn is None:
+            raise anyio.exceptions.ClosedResourceError
+        return proc(self, *a, **k)
+    return _chk
 
 
 class Serf:
@@ -116,6 +125,7 @@ class Serf:
         """
         await self.tg.cancel_scope.cancel()
 
+    @check_conn
     def stream(self, event_types="*"):
         """
         Open an event stream.
@@ -161,6 +171,7 @@ class Serf:
         res = self._conn.stream("stream", {"Type": event_types})
         return SerfStream(self, res)
 
+    @check_conn
     def query(
         self, name, payload=None, *, nodes=None, tags=None, request_ack=False, timeout=0
     ):
@@ -209,6 +220,7 @@ class Serf:
         res = self._conn.stream("query", params)
         return SerfQuery(self, res)
 
+    @check_conn
     def monitor(self, log_level="info"):
         """
         Ask the server to stream (some of) its log entries to you.
@@ -221,6 +233,7 @@ class Serf:
         res = self._conn.stream("monitor", {"LogLevel": log_level})
         return SerfStream(self, res)
 
+    @check_conn
     def respond(self, seq, payload):
         """
         Respond to a query.
@@ -235,6 +248,7 @@ class Serf:
             "respond", {"ID": seq, "Payload": payload}, expect_body=False
         )
 
+    @check_conn
     def event(self, name, payload=None, coalesce=True):
         """
         Send a user-specified event to the cluster. Can take an optional
@@ -254,6 +268,7 @@ class Serf:
             expect_body=False,
         )
 
+    @check_conn
     def members(self, name=None, status=None, tags=None):
         """
         Lists members of a Serf cluster, optionally filtered by one or more
@@ -283,6 +298,7 @@ class Serf:
         else:
             return self._conn.call("members-filtered", filters)
 
+    @check_conn
     def tags(self, **tags):
         """Set this node's tags.
 
@@ -302,6 +318,7 @@ class Serf:
             tags["DeleteTags"] = deleted
         return self._conn.call("tags", tags)
 
+    @check_conn
     def leave(self):
         """
         Terminate the Serf instance you're connected to.
@@ -311,6 +328,7 @@ class Serf:
         """
         return self._conn.call("leave", expect_body=False)
 
+    @check_conn
     def force_leave(self, name):
         """
         Force a node to leave the cluster.
@@ -320,6 +338,7 @@ class Serf:
         """
         return self._conn.call("force-leave", {"Node": name}, expect_body=False)
 
+    @check_conn
     def install_key(self, key):
         """
         Install a new encryption key onto the cluster's keyring.
@@ -329,6 +348,7 @@ class Serf:
         """
         return self._conn.call("install-key", {"Key": key}, expect_body=True)
 
+    @check_conn
     def use_key(self, key):
         """
         Change the cluster's primary encryption key.
@@ -338,6 +358,7 @@ class Serf:
         """
         return self._conn.call("use-key", {"Key": key}, expect_body=True)
 
+    @check_conn
     def remove_key(self, key):
         """
         Remove an encryption key from the cluster.
@@ -347,6 +368,7 @@ class Serf:
         """
         return self._conn.call("remove-key", {"Key": key}, expect_body=True)
 
+    @check_conn
     def list_keys(self):
         """
         Return a list of all encryption keys.
@@ -354,6 +376,7 @@ class Serf:
         """
         return self._conn.call("list-keys", expect_body=True)
 
+    @check_conn
     def join(self, location, replay=False):
         """
         Ask Serf to join a cluster, by providing a list of possible
@@ -371,6 +394,7 @@ class Serf:
             "join", {"Existing": location, "Replay": replay}, expect_body=2
         )
 
+    @check_conn
     def get_coordinate(self, node):
         """
         Return the network coordinate of a given node.
@@ -381,6 +405,7 @@ class Serf:
         """
         return self._conn.call(" get-coordinate", {"Node": node}, expect_body=True)
 
+    @check_conn
     def stats(self):
         """
         Obtain operator debugging information about the running Serf agent.
