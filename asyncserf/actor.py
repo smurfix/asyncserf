@@ -302,7 +302,7 @@ class Actor:
     ):
         self._client = client
         if tg is None:
-            tg = client._tg
+            tg = client.tg
         self._prefix = prefix
         self._name = name
         self._tg = tg
