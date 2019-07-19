@@ -11,7 +11,7 @@ from async_generator import asynccontextmanager
 
 from .exceptions import SerfClosedError, SerfConnectionError, SerfError
 from .result import SerfResult
-from .util import ValueEvent
+from .util import ValueEvent, CancelledError
 
 logger = getLogger(__name__)
 
@@ -81,7 +81,7 @@ class _StreamReply:
                     await self._conn.call(
                         "stop", params={b"Stop": self.seq}, expect_body=False
                     )
-                except anyio.exceptions.ClosedResourceError:
+                except (anyio.exceptions.ClosedResourceError, CancelledError):
                     pass
                 if hdl is not None:
                     # TODO remember this for a while?
