@@ -713,9 +713,7 @@ class Actor:
             return prefer_new
 
         # We either have a healed network split (bad) or are new (oh well).
-
         if self._value is not None:  # I am ready
-            pos = -1
             try:
                 pos = hist.index(self._name)
             except ValueError:
@@ -822,6 +820,14 @@ class Actor:
         await self._client.event(prefix, self._packer(msg), coalesce=False)
 
     async def _send_delay_ping(self, pos, evt, history):
+        """
+        After recovery, each side needs to send one message. Depending on
+        my position in the list of members on my side, I wait some time
+        for earlier nodes to do that. If no message arrives I do it.
+
+        This is complicated by the fact that multiple recovery efforts may
+        or may not be in progress.
+        """
         node = history[0]
         ping = self._recover_pings.get(node, None)
         if (
@@ -836,14 +842,17 @@ class Actor:
         self._recover_pings[node] = e = anyio.create_event()
         await evt.set()
 
+        # For pos=0 this is a no-op and times out immediately
         async with anyio.move_on_after(self._gap * (1 - 1 / (1 << pos))) as x:
             await e.wait()
-        if self._recover_pings.get(node, None) is e:
-            del self._recover_pings[node]
-        else:
+        if self._recover_pings.get(node, None) is not e:
+            # I have been superseded.
             return
-        if x.cancel_called:
+        del self._recover_pings[node]
+
+        if x.cancel_called:  # Timed out: thus, I send.
             if pos:
+                # Complain if we're not the first node.
                 self.logger.info("PingDelay: no signal %d", pos)
             await self._send_ping(history=history)
 
