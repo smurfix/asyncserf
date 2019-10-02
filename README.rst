@@ -45,23 +45,23 @@ These examples require a running async loop.
 `Trio <https://github.com/python-trio/trio>` is recommended, though
 ``asyncio`` works too.
 
+Sending a message is easy::
+
+    from asyncserf import serf_client
+
+    async with serf_client() as client:
+        await client.event('foo', b'bar')
+
+So is receiving::
+
 .. code-block:: python
 
     from asyncserf import serf_client
 
     async with serf_client() as client:
-        await client.event('foo', 'bar')
-
-Stream usage:
-
-.. code-block:: python
-
-    from asyncserf import serf_client
-
-    async with serf_client() as client:
-        async with client.stream('*') as stream:
+        async with client.stream('foo') as stream:
             async for resp in stream:
-                print(resp)
+                print(resp.payload)
 
 Development
 ------------

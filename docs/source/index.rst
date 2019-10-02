@@ -36,7 +36,6 @@ Inherited from `Trio <https://github.com/python-trio/trio>`_:
 
    rationale.rst
    usage.rst
-   actor.rst
    history.rst
 
 ====================
