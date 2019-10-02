@@ -26,19 +26,3 @@ class SerfClosedError(SerfError):
     """
 
     pass
-
-
-class SerfTimeoutError(SerfError):
-    """
-    Exception raised when we get no timely reply from Serf.
-    """
-
-    pass
-
-
-class SerfCollisionError(SerfError):
-    """
-    Exception raised when an actor sees another with the same name.
-    """
-
-    pass
