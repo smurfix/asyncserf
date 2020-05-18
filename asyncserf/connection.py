@@ -85,7 +85,10 @@ class _StreamReply:
                     pass
                 if hdl is not None:
                     # TODO remember this for a while?
-                    await self._conn.tg.spawn(self._cleanup, hdl)
+                    try:
+                        await self._conn.tg.spawn(self._cleanup, hdl)
+                    except RuntimeError:  # TG may be closed already
+                        pass
 
     async def _cleanup(self, hdl, *, result=None):
         if result is not None:
