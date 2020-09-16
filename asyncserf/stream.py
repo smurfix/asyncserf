@@ -154,8 +154,6 @@ class SerfEvent:
         return "<%s: %s>" % (
             self.__class__.__name__,
             ",".join(
-                "%s:%s" % (str(k), repr(v))
-                for k, v in vars(self).items()
-                if not k.startswith("_")
+                "%s:%s" % (str(k), repr(v)) for k, v in vars(self).items() if not k.startswith("_")
             ),
         )

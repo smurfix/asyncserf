@@ -16,7 +16,7 @@ def test_defaults(os_getenv):
 
 @mock.patch("os.getenv")
 def test_serf_rpc_addr(os_getenv):
-    def fake_os_getenv(key, default=None):
+    def fake_os_getenv(key, default=None):  # pylint:disable=unused-argument
         if key == "SERF_RPC_ADDR":
             return "serf.company.com:6464"
         return None
@@ -32,7 +32,7 @@ def test_serf_rpc_addr(os_getenv):
 
 @mock.patch("os.getenv")
 def test_serf_rpc_auth(os_getenv):
-    def fake_os_getenv(key, default=None):
+    def fake_os_getenv(key, default=None):  # pylint:disable=unused-argument
         if key == "SERF_RPC_AUTH":
             return "secret"
         return None

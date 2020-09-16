@@ -79,8 +79,7 @@ class TestSerfCommands:
             join = e.value.args[0]
             assert join.head[b"Seq"] == 1
             assert (
-                b"EOF" in join.head[b"Error"]
-                or b"connection reset by peer" in join.head[b"Error"]
+                b"EOF" in join.head[b"Error"] or b"connection reset by peer" in join.head[b"Error"]
             )
             assert join.body == {b"Num": 0}
 
@@ -92,8 +91,7 @@ class TestSerfCommands:
             join = e.value.args[0]
             assert join.head[b"Seq"] == 1
             assert (
-                b"EOF" in join.head[b"Error"]
-                or b"connection reset by peer" in join.head[b"Error"]
+                b"EOF" in join.head[b"Error"] or b"connection reset by peer" in join.head[b"Error"]
             )
             assert join.body == {b"Num": 0}
 
@@ -150,10 +148,7 @@ class TestSerfCommands:
             members = await serf.members()
             ip_addr = members.body[b"Members"][0][b"Addr"]
 
-            assert (
-                re.match(rb"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", ip_addr)
-                or b":" in ip_addr
-            )
+            assert re.match(rb"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", ip_addr) or b":" in ip_addr
 
     @pytest.mark.anyio
     async def test_stats_is_well_formed(self):

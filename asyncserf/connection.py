@@ -42,28 +42,27 @@ class _StreamReply:
         self._command = command
         self._params = params
         self.seq = seq
-        self._q = anyio.create_queue(10000)
+        self._q_w, self._q_r = anyio.create_memory_object_stream(10000)
         self.expect_body = -expect_body
 
     async def set(self, value):
-        await self._q.put(outcome.Value(value))
+        await self._q_w.send(outcome.Value(value))
 
     async def set_error(self, err):
-        await self._q.put(outcome.Error(err))
+        await self._q_w.send(outcome.Error(err))
 
     async def get(self):
-        res = await self._q.get()
+        res = await self._q_r.receive()
         return res.unwrap()
 
     def __aiter__(self):
         return self
 
     async def __anext__(self):
-        if self._q is None:
-            raise StopAsyncIteration
-        res = await self._q.get()
-        if res is None:
-            raise StopAsyncIteration
+        try:
+            res = await self._q_r.receive()
+        except anyio.EndOfStream:
+            raise StopAsyncIteration  # pylint:disable=raise-missing-from
         return res.unwrap()
 
     async def __aenter__(self):
@@ -78,10 +77,8 @@ class _StreamReply:
         if self.send_stop:
             async with anyio.open_cancel_scope(shield=True):
                 try:
-                    await self._conn.call(
-                        "stop", params={b"Stop": self.seq}, expect_body=False
-                    )
-                except (anyio.exceptions.ClosedResourceError, CancelledError):
+                    await self._conn.call("stop", params={b"Stop": self.seq}, expect_body=False)
+                except (anyio.ClosedResourceError, CancelledError):
                     pass
                 if hdl is not None:
                     # TODO remember this for a while?
@@ -97,8 +94,8 @@ class _StreamReply:
         del hdl[self.seq]
 
     async def cancel(self):
-        await self._q.put(None)
-        self._q = None
+        await self._q_w.aclose()
+        self._q_w = None
 
 
 class SerfConnection:
@@ -204,8 +201,8 @@ class SerfConnection:
 
         async with self._send_lock:  # pylint: disable=not-async-context-manager  ## owch
             if self._socket is None:
-                raise anyio.exceptions.ClosedResourceError()
-            await self._socket.send_all(msg)
+                raise anyio.ClosedResourceError()
+            await self._socket.send(msg)
 
         return _reply
 
@@ -232,7 +229,9 @@ class SerfConnection:
         try:
             seq = msg.head[b"Seq"]
         except KeyError:
-            raise RuntimeError("Reader got out of sync: " + str(msg))
+            raise RuntimeError(  # pylint:disable=raise-missing-from
+                "Reader got out of sync: " + str(msg)
+            )
         try:
             hdl = self._handlers[seq]
         except KeyError:
@@ -274,9 +273,7 @@ class SerfConnection:
                         logger.debug("%d:wait for body", self._conn_id)
                     try:
                         async with anyio.fail_after(5 if cur_msg else math.inf):
-                            buf = await self._socket.receive_some(
-                                self._socket_recv_size
-                            )
+                            buf = await self._socket.receive(self._socket_recv_size)
                     except TimeoutError:
                         seq = cur_msg.head.get(b"Seq", None)
                         hdl = self._handlers.get(seq, None)
@@ -284,7 +281,7 @@ class SerfConnection:
                             await hdl.set_error(SerfTimeout(cur_msg))
                         else:
                             raise SerfTimeout(cur_msg) from None
-                    except anyio.exceptions.ClosedResourceError:
+                    except anyio.ClosedResourceError:
                         return  # closed by us
                     except OSError as err:
                         if err.errno == errno.EBADF:
@@ -341,7 +338,7 @@ class SerfConnection:
         finally:
             sock, self._socket = self._socket, None
             if sock is not None:
-                await sock.close()
+                await sock.aclose()
             if reader is not None:
                 await reader.cancel()
                 reader = None

@@ -31,9 +31,7 @@ class TestSerfStream:
                     except UnicodeDecodeError:
                         pass
 
-            sorted_responses = sorted(
-                [[res.name, res.payload] for res in all_responses]
-            )
+            sorted_responses = sorted([[res.name, res.payload] for res in all_responses])
             for i, res in enumerate(sorted_responses):
                 expected = expected_data[i]
                 assert res[0] == expected[0]
