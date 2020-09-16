@@ -118,9 +118,9 @@ class TestSerfConnection:
         async with rpc_connect() as rpc:
             await rpc.handshake()
 
-            await rpc._socket.close()
+            await rpc._socket.aclose()
 
-            with pytest.raises(OSError):
+            with pytest.raises(anyio.ClosedResourceError):
                 await rpc.handshake()
 
     @pytest.mark.anyio

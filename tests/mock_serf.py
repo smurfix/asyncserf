@@ -22,7 +22,7 @@ otm = time.time
 
 
 @asynccontextmanager
-async def stdtest(n=1, **kw):
+async def stdtest(n=1, **kw):  # pylint: disable=unused-argument
     clock = trio.hazmat.current_clock()
     clock.autojump_threshold = 0.01
 
@@ -47,7 +47,7 @@ async def stdtest(n=1, **kw):
             return iter(self.s)
 
         @asynccontextmanager
-        async def client(self, i: int = 0, **kv):
+        async def client(self, i: int = 0, **kv):  # pylint: disable=unused-argument
             """Get a client for the i'th server."""
             async with asyncserf.client.serf_client() as c:
                 yield c
@@ -71,23 +71,11 @@ async def stdtest(n=1, **kw):
         st = S(tg)
         async with AsyncExitStack() as ex:
             ex.enter_context(mock.patch("time.time", new=tm))
-            logging._startTime = tm()
+            logging._startTime = tm()  # pylint:disable=protected-access
 
             ex.enter_context(
-                mock.patch(
-                    "asyncserf.client.serf_client", new=partial(mock_serf_client, st)
-                )
+                mock.patch("asyncserf.client.serf_client", new=partial(mock_serf_client, st))
             )
-
-            class IsStarted:
-                def __init__(self, n):
-                    self.n = n
-                    self.dly = trio.Event()
-
-                def started(self, x=None):
-                    self.n -= 1
-                    if not self.n:
-                        self.dly.set()
 
             try:
                 yield st
@@ -129,7 +117,7 @@ class MockSerf:
                 await fn(*args, **kw)
 
         evt = ValueEvent()
-        await self._tg.spawn(run, evt)
+        await self.tg.spawn(run, evt)
         return await evt.get()
 
     def stream(self, typ):
@@ -152,34 +140,34 @@ class MockSerf:
             else:
                 sl = s.streams.get(typ, None)
                 if sl is not None:
-                    for s in sl:
-                        await s.q.put(payload)
+                    for si in sl:
+                        await si.qw.send(payload)
 
 
 class MockSerfStream:
     def __init__(self, serf, typ):
         self.serf = serf
         self.typ = typ
-        self.q = None
+        self.qr = None
+        self.qw = None
 
     async def __aenter__(self):
         logger.debug("SERF:MON START:%s", self.typ)
-        assert self.q is None
-        self.q = anyio.create_queue(100)
+        assert self.qw is None
+        self.qw, self.qr = anyio.create_memory_object_stream(100)
         self.serf.streams.setdefault(self.typ, []).append(self)
         return self
 
     async def __aexit__(self, *tb):
         self.serf.streams[self.typ].remove(self)
         logger.debug("SERF:MON END:%s", self.typ)
-        self.q = None
+        await self.qw.aclose()
 
     def __aiter__(self):
-        self.q = anyio.create_queue(100)
         return self
 
     async def __anext__(self):
-        res = await self.q.get()
+        res = await self.qr.receive()
         # logger.debug("SERF<%s< %r", self.typ, res)
         evt = SerfEvent(self)
         evt.payload = res

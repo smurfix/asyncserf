@@ -25,9 +25,7 @@ except ImportError:
     PyTest = lambda x: x
 
 try:
-    long_description = open(
-        os.path.join(os.path.dirname(__file__), "README.rst")
-    ).read()
+    long_description = open(os.path.join(os.path.dirname(__file__), "README.rst")).read()
 except OSError:
     long_description = None
 
@@ -45,7 +43,7 @@ setup(
     keywords=["Serf", "orchestration", "service discovery", "anyio"],
     license="MIT",
     packages=["asyncserf"],
-    install_requires=["msgpack >= 0.5.0", "anyio >= 1.0.0", "outcome", "attrs >= 18.1"],
+    install_requires=["msgpack >= 0.5.0", "anyio >= 2.0", "outcome", "attrs >= 18.1"],
     extras_require={":python_version < '3.7'": ["async_generator", "async_exit_stack"]},
     tests_require=["pytest >= 2.5.2", "pytest-cov >= 2.3", "trio >= 0.11"],
     cmdclass={"test": PyTest},

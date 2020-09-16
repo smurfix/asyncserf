@@ -32,12 +32,14 @@ async def serf_client(**kw):
             yield client
             await tg.cancel_scope.cancel()
 
+
 def check_conn(proc):
     @functools.wraps(proc)
     def _chk(self, *a, **k):
         if self._conn is None:
-            raise anyio.exceptions.ClosedResourceError
+            raise anyio.ClosedResourceError
         return proc(self, *a, **k)
+
     return _chk
 
 
@@ -172,9 +174,7 @@ class Serf:
         return SerfStream(self, res)
 
     @check_conn
-    def query(
-        self, name, payload=None, *, nodes=None, tags=None, request_ack=False, timeout=0
-    ):
+    def query(self, name, payload=None, *, nodes=None, tags=None, request_ack=False, timeout=0):
         """
         Send a query.
 
@@ -244,9 +244,7 @@ class Serf:
             raise RuntimeError("You cannot respond to this message.")
         if payload is not None:
             payload = self.codec.encode(payload)
-        return self._conn.call(
-            "respond", {"ID": seq, "Payload": payload}, expect_body=False
-        )
+        return self._conn.call("respond", {"ID": seq, "Payload": payload}, expect_body=False)
 
     @check_conn
     def event(self, name, payload=None, coalesce=True):
@@ -263,9 +261,7 @@ class Serf:
         if payload is not None:
             payload = self.codec.encode(payload)
         return self._conn.call(
-            "event",
-            {"Name": name, "Payload": payload, "Coalesce": coalesce},
-            expect_body=False,
+            "event", {"Name": name, "Payload": payload, "Coalesce": coalesce}, expect_body=False,
         )
 
     @check_conn
@@ -390,9 +386,7 @@ class Serf:
         """
         if not isinstance(location, (list, tuple)):
             location = [location]
-        return self._conn.call(
-            "join", {"Existing": location, "Replay": replay}, expect_body=2
-        )
+        return self._conn.call("join", {"Existing": location, "Replay": replay}, expect_body=2)
 
     @check_conn
     def get_coordinate(self, node):
