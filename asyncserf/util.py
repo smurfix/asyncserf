@@ -24,7 +24,7 @@ class ValueEvent:
     Note that the value can only be read once.
     """
 
-    event = attr.ib(factory=anyio.create_event, init=False)
+    event = attr.ib(factory=anyio.Event, init=False)
     value = attr.ib(default=None, init=False)
     scope = attr.ib(default=None, init=True)
 
